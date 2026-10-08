@@ -32,6 +32,10 @@ ln -sfn /config /homeassistant
 
 git config --global --replace-all safe.directory '*'
 
+# User-defined environment (secrets.yaml, /addon_config/env, options)
+herdr-env /run/herdr/env.sh \
+    || bashio::log.warning 'Failed loading custom environment variables'
+
 # Claude Code installs into the persistent home and updates itself there
 if [[ ! -x "${HOME}/.local/bin/claude" ]]; then
     bashio::log.info 'Installing Claude Code...'

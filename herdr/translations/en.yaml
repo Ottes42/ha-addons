@@ -1,0 +1,14 @@
+configuration:
+  authorized_keys:
+    name: Authorized SSH keys
+    description: Public keys allowed to log in as root on port 2222.
+  ha_secrets:
+    name: Secrets from secrets.yaml
+    description: >-
+      Keys from /config/secrets.yaml to export as environment variables.
+      `grocy_api_key` becomes GROCY_API_KEY, `GROCY=grocy_api_key` sets a custom name.
+  env_vars:
+    name: Environment variables
+    description: Additional variables (name and value) for herdr panes and shells.
+network:
+  2222/tcp: SSH (for herdr --remote)

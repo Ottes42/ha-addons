@@ -26,6 +26,7 @@ RUN \
         openssh-server \
         procps \
         python3 \
+        python3-yaml \
         ripgrep \
     \
     && if [[ "${BUILD_ARCH}" = "aarch64" ]]; then ARCH="aarch64"; fi \
@@ -43,4 +44,4 @@ RUN \
 
 COPY rootfs /
 
-RUN chmod +x /etc/s6-overlay/s6-rc.d/*/run
+RUN chmod +x /etc/s6-overlay/s6-rc.d/*/run /usr/local/bin/herdr-env

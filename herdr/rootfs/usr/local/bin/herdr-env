@@ -1,0 +1,129 @@
+#!/usr/bin/env python3
+"""Collect user-defined environment variables for herdr panes and shells.
+
+Sources, a later one wins when names collide:
+  1. selected keys from /config/secrets.yaml (option `ha_secrets`)
+  2. the dotenv file /addon_config/env
+  3. `env_vars` from the add-on options
+
+Writes `export NAME='value'` lines to the file given as argument.
+Only variable names are logged, never values.
+"""
+import json
+import os
+import re
+import shlex
+import sys
+from pathlib import Path
+
+import yaml
+
+OPTIONS = Path("/data/options.json")
+HA_SECRETS = Path("/config/secrets.yaml")
+ENV_FILE = Path("/addon_config/env")
+
+NAME_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+PROTECTED = {"HOME", "PATH", "SHELL", "TERM", "SUPERVISOR_TOKEN"}
+
+ENV_FILE_TEMPLATE = """\
+# Environment variables for herdr panes and shells, one KEY=value per line.
+# Changes take effect after restarting the add-on.
+#
+# GROCY_API_KEY=abc123
+# OPENAI_API_KEY="sk-..."
+"""
+
+
+def log(message):
+    print(f"[herdr-env] {message}", file=sys.stderr)
+
+
+class _IgnoreTagsLoader(yaml.SafeLoader):
+    """SafeLoader that maps unknown tags like !include to None."""
+
+
+_IgnoreTagsLoader.add_multi_constructor("!", lambda loader, suffix, node: None)
+
+
+def from_ha_secrets(entries):
+    """Entries are `secret_key` (env name = SECRET_KEY) or `ENV_NAME=secret_key`."""
+    if not entries:
+        return {}
+    try:
+        secrets = yaml.load(HA_SECRETS.read_text(), Loader=_IgnoreTagsLoader) or {}
+    except (OSError, yaml.YAMLError) as err:
+        log(f"cannot read {HA_SECRETS}: {err}")
+        return {}
+
+    result = {}
+    for entry in entries:
+        name, _, key = entry.partition("=")
+        if not key:
+            key = name
+            name = re.sub(r"[^A-Za-z0-9_]", "_", key).upper()
+        value = secrets.get(key)
+        if value is None or isinstance(value, (dict, list)):
+            log(f"secret '{key}' not found or not a plain value, skipped")
+            continue
+        result[name] = str(value)
+    return result
+
+
+def from_env_file():
+    if not ENV_FILE.parent.is_dir():
+        return {}
+    if not ENV_FILE.exists():
+        ENV_FILE.write_text(ENV_FILE_TEMPLATE)
+        ENV_FILE.chmod(0o600)
+        return {}
+
+    result = {}
+    for number, line in enumerate(ENV_FILE.read_text().splitlines(), start=1):
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        line = line.removeprefix("export ").strip()
+        name, sep, value = line.partition("=")
+        if not sep:
+            log(f"{ENV_FILE}:{number}: expected KEY=value, skipped")
+            continue
+        value = value.strip()
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in "'\"":
+            value = value[1:-1]
+        result[name.strip()] = value
+    return result
+
+
+def from_options(entries):
+    return {entry["name"]: entry["value"] for entry in entries or []}
+
+
+def main():
+    target = Path(sys.argv[1])
+    options = json.loads(OPTIONS.read_text())
+
+    variables = {}
+    variables.update(from_ha_secrets(options.get("ha_secrets")))
+    variables.update(from_env_file())
+    variables.update(from_options(options.get("env_vars")))
+
+    lines = []
+    for name, value in variables.items():
+        if not NAME_RE.match(name):
+            log(f"invalid variable name '{name}', skipped")
+            continue
+        if name in PROTECTED:
+            log(f"'{name}' is managed by the add-on, skipped")
+            continue
+        lines.append(f"export {name}={shlex.quote(value)}\n")
+
+    os.umask(0o077)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text("".join(lines))
+
+    names = sorted(line.split("=", 1)[0][len("export "):] for line in lines)
+    log(f"loaded: {', '.join(names)}" if names else "no custom variables")
+
+
+if __name__ == "__main__":
+    main()

@@ -4,3 +4,6 @@ if [ -r /run/s6/container_environment/SUPERVISOR_TOKEN ]; then
     SUPERVISOR_TOKEN="$(cat /run/s6/container_environment/SUPERVISOR_TOKEN)"
     export SUPERVISOR_TOKEN
 fi
+if [ -r /run/herdr/env.sh ]; then
+    . /run/herdr/env.sh
+fi
