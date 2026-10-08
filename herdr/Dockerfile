@@ -12,6 +12,7 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 ARG BUILD_ARCH=amd64
 ARG HERDR_VERSION="0.9.3"
+ARG TTYD_VERSION="1.7.7"
 # hadolint ignore=DL3008
 RUN \
     apt-get update \
@@ -26,13 +27,14 @@ RUN \
         procps \
         python3 \
         ripgrep \
-        ttyd \
     \
     && if [[ "${BUILD_ARCH}" = "aarch64" ]]; then ARCH="aarch64"; fi \
     && if [[ "${BUILD_ARCH}" = "amd64" ]]; then ARCH="x86_64"; fi \
     && curl -fsSL -o /usr/local/bin/herdr \
         "https://github.com/herdrdev/herdr/releases/download/v${HERDR_VERSION}/herdr-linux-${ARCH}" \
-    && chmod +x /usr/local/bin/herdr \
+    && curl -fsSL -o /usr/local/bin/ttyd \
+        "https://github.com/tsl0922/ttyd/releases/download/${TTYD_VERSION}/ttyd.${ARCH}" \
+    && chmod +x /usr/local/bin/herdr /usr/local/bin/ttyd \
     \
     && usermod -d /data/home root \
     && rm -f /etc/ssh/ssh_host_* \

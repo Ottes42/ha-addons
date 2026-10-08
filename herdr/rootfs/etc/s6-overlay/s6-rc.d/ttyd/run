@@ -4,7 +4,7 @@
 # herdr add-on: web terminal behind ingress, attaches to the herdr server
 # ==============================================================================
 bashio::log.info 'Starting web terminal...'
-exec ttyd \
+exec /usr/local/bin/ttyd \
     --port 7681 \
     --writable \
     --ping-interval 30 \
