@@ -36,7 +36,8 @@ RUN \
         "https://github.com/tsl0922/ttyd/releases/download/${TTYD_VERSION}/ttyd.${ARCH}" \
     && chmod +x /usr/local/bin/herdr /usr/local/bin/ttyd \
     \
-    && usermod -d /data/home root \
+    && sed -i 's#^\(root:[^:]*:0:0:[^:]*:\)/root:#\1/data/home:#' /etc/passwd \
+    && grep -q '^root:.*:/data/home:' /etc/passwd \
     && rm -f /etc/ssh/ssh_host_* \
     && rm -rf /var/lib/apt/lists/*
 
