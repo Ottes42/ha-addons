@@ -1,0 +1,13 @@
+#!/command/with-contenv bashio
+# shellcheck shell=bash
+# ==============================================================================
+# herdr add-on: runs the headless herdr server
+# Panes inherit this environment, including SUPERVISOR_TOKEN.
+# ==============================================================================
+export PATH="${HOME}/.local/bin:${PATH}"
+export SHELL=/bin/bash
+export TERM=xterm-256color
+
+bashio::log.info 'Starting herdr server...'
+cd /config || bashio::exit.nok 'Could not change into /config'
+exec herdr server

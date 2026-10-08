@@ -1,0 +1,9 @@
+#!/command/with-contenv bashio
+# shellcheck shell=bash
+# ==============================================================================
+# herdr add-on: SSH server on port 2222 for `herdr --remote`
+# ==============================================================================
+mkdir -p /run/sshd
+
+bashio::log.info 'Starting SSH server on port 2222...'
+exec /usr/sbin/sshd -D -e

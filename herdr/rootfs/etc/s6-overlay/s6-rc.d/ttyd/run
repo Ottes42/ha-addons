@@ -1,0 +1,12 @@
+#!/command/with-contenv bashio
+# shellcheck shell=bash
+# ==============================================================================
+# herdr add-on: web terminal behind ingress, attaches to the herdr server
+# ==============================================================================
+bashio::log.info 'Starting web terminal...'
+exec ttyd \
+    --port 7681 \
+    --writable \
+    --ping-interval 30 \
+    --client-option titleFixed=herdr \
+    bash -lc 'cd /config && exec herdr'

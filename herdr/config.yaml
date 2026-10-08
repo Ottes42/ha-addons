@@ -1,0 +1,35 @@
+name: herdr
+version: "0.9.3"
+slug: herdr
+description: Persistenter herdr-Server für Coding-Agents (Claude Code), per SSH und Web-Terminal
+url: https://github.com/Ottes42/ha-addons/tree/main/herdr
+arch:
+  - aarch64
+  - amd64
+init: false
+startup: services
+boot: auto
+watchdog: tcp://[HOST]:[PORT:2222]
+ingress: true
+ingress_port: 7681
+panel_icon: mdi:console-line
+panel_title: herdr
+homeassistant_api: true
+hassio_api: true
+map:
+  - type: homeassistant_config
+    read_only: false
+    path: /config
+  - type: share
+    read_only: false
+  - type: addons
+    read_only: false
+ports:
+  2222/tcp: 2222
+ports_description:
+  2222/tcp: SSH (für herdr --remote)
+options:
+  authorized_keys: []
+schema:
+  authorized_keys:
+    - str

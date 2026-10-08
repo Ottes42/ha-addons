@@ -1,0 +1,40 @@
+#!/command/with-contenv bashio
+# shellcheck shell=bash
+# ==============================================================================
+# herdr add-on: prepares the persistent home, SSH access and Claude Code
+# ==============================================================================
+readonly SSH_HOST_KEY=/data/ssh/ssh_host_ed25519_key
+
+mkdir -p "${HOME}/.ssh" /data/ssh
+chmod 700 "${HOME}" "${HOME}/.ssh" /data/ssh
+
+# Host key lives in /data, so clients don't see a new key after every update
+if ! bashio::fs.file_exists "${SSH_HOST_KEY}"; then
+    bashio::log.info 'Generating SSH host key...'
+    ssh-keygen -q -t ed25519 -N '' -f "${SSH_HOST_KEY}" \
+        || bashio::exit.nok 'Failed generating SSH host key'
+fi
+
+# authorized_keys always reflects the add-on options
+: > "${HOME}/.ssh/authorized_keys"
+if bashio::config.has_value 'authorized_keys'; then
+    bashio::config 'authorized_keys' > "${HOME}/.ssh/authorized_keys"
+else
+    bashio::log.warning 'No authorized_keys configured, SSH login is not possible'
+fi
+chmod 600 "${HOME}/.ssh/authorized_keys"
+
+# Convenience links like in the SSH and VS Code add-ons
+for dir in config share addons; do
+    ln -sfn "/${dir}" "${HOME}/${dir}"
+done
+ln -sfn /config /homeassistant
+
+git config --global --replace-all safe.directory '*'
+
+# Claude Code installs into the persistent home and updates itself there
+if [[ ! -x "${HOME}/.local/bin/claude" ]]; then
+    bashio::log.info 'Installing Claude Code...'
+    curl -fsSL https://claude.ai/install.sh | bash \
+        || bashio::log.warning 'Claude Code installation failed, retrying on next start'
+fi
