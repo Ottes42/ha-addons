@@ -54,4 +54,4 @@ RUN \
 COPY rootfs /
 
 RUN chmod +x /etc/s6-overlay/s6-rc.d/*/run /usr/local/bin/herdr-env \
-        /usr/local/bin/ha-* /usr/local/bin/esphome-*
+        /usr/local/bin/ha-* /usr/local/bin/esphome-* /usr/local/bin/herdr-agents

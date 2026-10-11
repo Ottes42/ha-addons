@@ -10,5 +10,18 @@ configuration:
   env_vars:
     name: Environment variables
     description: Additional variables (name and value) for herdr panes and shells.
+  agent_instructions:
+    name: Agent instructions
+    description: >-
+      Additional instructions for Claude Code and other agents, appended to the
+      managed block in ~/.claude/CLAUDE.md and ~/.codex/AGENTS.md.
+  claude_allow:
+    name: Claude Code allow rules
+    description: >-
+      Extra permission rules allowed without asking, e.g. Bash(git status).
+      Read-only Home Assistant tools are allowed by default.
+  claude_deny:
+    name: Claude Code deny rules
+    description: Permission rules Claude Code must never use, e.g. Bash(rm -rf *).
 network:
   2222/tcp: SSH (for herdr --remote)

@@ -1,48 +1,53 @@
 ---
 name: esphome
-description: Edit, validate, compile and install ESPHome device firmware through the ESPHome Device Builder add-on. Use for anything about ESPHome devices, their YAML in /config/esphome, OTA updates, failed installs or firmware versions.
+description: ESPHome-Firmware über das Add-on ESPHome Device Builder bearbeiten, prüfen, kompilieren und installieren. Nutzen für alles rund um ESPHome-Geräte, ihr YAML in /config/esphome, OTA-Updates, fehlgeschlagene Installationen oder Firmware-Versionen.
 ---
 
-Device YAML lives in `/config/esphome` and can be read and edited directly.
-Builds and installs go through the ESPHome Device Builder add-on, so they use
-its toolchain and stored credentials. Both tools reach it on port 6052; if they
-report that the port is not mapped, ask the user to enable
-`leave_front_door_open` and map port 6052 in the ESPHome add-on.
+Die Geräte-YAMLs liegen in `/config/esphome` und lassen sich direkt lesen und
+bearbeiten. Builds und Installationen laufen über das Add-on ESPHome Device
+Builder, nutzen also dessen Toolchain und gespeicherte Zugangsdaten. Beide
+Werkzeuge erreichen ihn über Port 6052; melden sie, dass der Port nicht
+freigegeben ist, den Nutzer bitten, im ESPHome-Add-on `leave_front_door_open`
+einzuschalten und Port 6052 freizugeben.
 
-## esphome-build (any ESPHome version)
+## esphome-build (jede ESPHome-Version)
 
 ```sh
 esphome-build compile esp32c3-btproxy-buro.yaml
-esphome-build install esp32c3-btproxy-buro.yaml        # compile, then OTA upload
-esphome-build upload  esp32c3-btproxy-buro.yaml OTA    # upload the last build
+esphome-build install esp32c3-btproxy-buro.yaml        # kompilieren, dann per OTA hochladen
+esphome-build upload  esp32c3-btproxy-buro.yaml OTA    # letzten Build hochladen
 ```
 
-Filter the output, the upload progress bar is long:
+Die Ausgabe filtern, der Upload-Fortschrittsbalken ist lang:
 `esphome-build install x.yaml 2>&1 | grep -vE 'Uploading: \[' | tail -30`.
-Exit code 1 means failure; the log tail says why.
+Exit-Code 1 heißt Fehler, das Ende des Logs sagt warum. „No route to host“
+heißt: Gerät offline.
 
-## MCP server `esphome` (ESPHome 2026.10 and newer)
+## MCP-Server `esphome` (ab ESPHome 2026.10)
 
-`esphome-mcp` bridges Claude Code to the builder's MCP endpoint. Check it with
-`esphome-mcp --check`; on older builders it says the endpoint is missing, then
-use `esphome-build`.
+`esphome-mcp` verbindet Claude Code mit dem MCP-Endpunkt des Device Builders.
+Prüfen mit `esphome-mcp --check`; bei älteren Versionen meldet es, dass der
+Endpunkt fehlt, dann `esphome-build` nehmen.
 
-Flow: `list_devices` → `get_config` → `update_config` (needs the text
-`get_config` returned as `expected`) → `validate_config` → `install` → poll
-`get_job` until it finishes. Long work is start-then-poll.
+Ablauf: `list_devices` → `get_config` → `update_config` (braucht den Text aus
+`get_config` als `expected`) → `validate_config` → `install` → `get_job` abfragen,
+bis der Job fertig ist. Lange Aufgaben starten und dann abfragen.
 
-## Rules
+## Regeln
 
-- A flash has no undo. Never install a config that drops `wifi:`, `api:` or
-  `ota:` or changes the board; only a serial cable recovers that.
-- Install one device, confirm it comes back online in Home Assistant
-  (`ha-ws config/device_registry/list`, `sw_version`), then the next.
-- Do not print `secrets.yaml` or passwords unless the user asks.
+- Ein Flash lässt sich nicht rückgängig machen. Nie eine Konfiguration
+  installieren, die `wifi:`, `api:` oder `ota:` entfernt oder das Board ändert;
+  das rettet nur noch ein serielles Kabel.
+- Vor dem Flashen nachfragen. Ein Gerät installieren, prüfen, dass es in Home
+  Assistant wieder online ist (`ha-ws config/device_registry/list`,
+  `sw_version`), dann das nächste.
+- `secrets.yaml` und Passwörter nicht ausgeben, außer auf Wunsch.
 
-## OTA encryption (ESPHome 2026.9+)
+## OTA-Verschlüsselung (ESPHome 2026.9+)
 
-OTA updates move from `ota: password:` to `ota: encryption:` (reuses the API
-key). Migrate in two installs: first update with the password still in the
-config, then replace `password:` with `encryption:` and install again. Removing
-the password first fails with `ESP requests password, but no password given!`.
-Unencrypted updates stop working with 2027.3.0.
+OTA-Updates wechseln von `ota: password:` zu `ota: encryption:` (nutzt den
+API-Schlüssel). Umstellung in zwei Installationen: erst mit Passwort in der
+Konfiguration aktualisieren, dann `password:` durch `encryption:` ersetzen und
+erneut installieren. Wer das Passwort zuerst entfernt, bekommt
+`ESP requests password, but no password given!`. Unverschlüsselte Updates
+funktionieren nur bis 2027.3.0.

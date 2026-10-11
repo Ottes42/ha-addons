@@ -51,6 +51,9 @@ for skill in /usr/share/herdr/skills/*/; do
     cp -r "${skill}" "${HOME}/.claude/skills/${name}"
 done
 
+# Instructions and permissions for coding agents (managed block / rules only)
+herdr-agents || bashio::log.warning 'Failed setting up agent instructions and permissions'
+
 # MCP bridge to the ESPHome Device Builder, registered once for Claude Code
 if [[ -x "${HOME}/.local/bin/claude" ]] \
     && ! "${HOME}/.local/bin/claude" mcp get esphome >/dev/null 2>&1; then

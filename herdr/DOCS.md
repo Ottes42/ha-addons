@@ -1,14 +1,17 @@
 # herdr
 
-A persistent [herdr](https://herdr.dev) server inside Home Assistant. Coding agents
-such as Claude Code keep running here, even when the client disconnects.
+Ein dauerhaft laufender [herdr](https://herdr.dev)-Server in Home Assistant.
+Coding-Agents wie Claude Code laufen hier weiter, auch wenn der Client die
+Verbindung trennt.
 
-## Access
+## Zugriff
 
-- **Web terminal:** "herdr" in the sidebar. Attaches to the running server.
-- **SSH / herdr remote:** port 2222, public key login as `root` only.
+- **Web-Terminal:** „herdr“ in der Seitenleiste. Verbindet sich mit dem
+  laufenden Server.
+- **SSH / herdr remote:** Port 2222, Anmeldung nur als `root` mit öffentlichem
+  Schlüssel.
 
-  Example `~/.ssh/config`:
+  Beispiel für `~/.ssh/config`:
 
   ```
   Host ha-herdr
@@ -18,105 +21,144 @@ such as Claude Code keep running here, even when the client disconnects.
   ```
 
   ```sh
-  herdr --remote ha-herdr   # thin local client, herdr installed locally
-  ssh ha-herdr              # or plain SSH, then run: herdr
+  herdr --remote ha-herdr   # schlanker lokaler Client, herdr lokal installiert
+  ssh ha-herdr              # oder einfach SSH, dann: herdr
   ```
 
-## Configuration
+### Kopieren und Einfügen im Web-Terminal
+
+Das Web-Terminal (ttyd mit xterm.js) schickt `Strg+V` als Steuerzeichen an das
+Terminal, statt einzufügen. Diese Wege sollten funktionieren:
+
+- **Windows/Linux:** `Strg+Umschalt+V` oder `Umschalt+Einfg`
+- **macOS:** `Cmd+V`
+- **Maus:** herdr fängt die Maus ab. Mit gedrückter `Umschalt`-Taste
+  (macOS: `Option`) erscheint beim Rechtsklick das Kontextmenü des Browsers mit
+  „Einfügen“; so lässt sich auch Text markieren und kopieren.
+
+## Konfiguration
 
 ```yaml
 authorized_keys:
   - ssh-ed25519 AAAA... name
 ha_secrets:
-  - grocy_api_key               # exported as GROCY_API_KEY
-  - OPENAI_API_KEY=openai_token # custom variable name
+  - grocy_api_key               # wird zu GROCY_API_KEY
+  - OPENAI_API_KEY=openai_token # eigener Variablenname
 env_vars:
   - name: SOME_TOKEN
     value: "..."
+agent_instructions: "Antworte auf Deutsch."
+claude_allow:
+  - Bash(git status)
+claude_deny:
+  - Bash(rm -rf *)
 ```
 
 ### `authorized_keys`
 
-Public keys allowed to log in via SSH. Without keys, SSH login is not possible
-(the web terminal still works).
+Öffentliche Schlüssel, die sich per SSH anmelden dürfen. Ohne Schlüssel ist keine
+SSH-Anmeldung möglich (das Web-Terminal funktioniert trotzdem).
 
-### Environment variables
+### Umgebungsvariablen
 
-API keys and tokens (e.g. for Grocy or other online services) can be provided to
-all herdr panes and login shells. There are three optional sources; when a name
-appears more than once, the later source wins:
+API-Schlüssel und Tokens (z. B. für Grocy oder andere Onlinedienste) lassen sich
+allen herdr-Panes und Login-Shells mitgeben. Es gibt drei optionale Quellen;
+kommt ein Name mehrfach vor, gewinnt die spätere:
 
-1. **`ha_secrets`**: keys from Home Assistant's `/config/secrets.yaml`. Only the
-   keys listed here are exported, never the whole file. `grocy_api_key` becomes
-   `GROCY_API_KEY`; `NAME=secret_key` sets a custom name.
-2. **Env file**: `/addon_configs/<slug>_herdr/env` (visible via Samba or the
-   Studio Code Server add-on), one `KEY=value` per line, `#` for comments.
-   The file is created with examples on first start.
-3. **`env_vars`**: name/value pairs set in the add-on configuration UI. Values are
-   masked in the UI.
+1. **`ha_secrets`**: Schlüssel aus `/config/secrets.yaml` von Home Assistant. Nur
+   die hier aufgeführten Schlüssel werden exportiert, nie die ganze Datei.
+   `grocy_api_key` wird zu `GROCY_API_KEY`, `NAME=secret_key` setzt einen eigenen
+   Namen.
+2. **Env-Datei**: `/addon_configs/<slug>_herdr/env` (erreichbar über Samba oder
+   das Studio-Code-Server-Add-on), eine Zeile `KEY=value` pro Variable, `#` für
+   Kommentare. Die Datei wird beim ersten Start mit Beispielen angelegt.
+3. **`env_vars`**: Name/Wert-Paare aus der Konfigurationsoberfläche des Add-ons.
+   Die Werte werden dort verdeckt angezeigt.
 
-`HOME`, `PATH`, `SHELL`, `TERM` and `SUPERVISOR_TOKEN` are managed by the add-on
-and cannot be overridden. The add-on log lists the names of loaded variables,
-never their values.
+`HOME`, `PATH`, `SHELL`, `TERM` und `SUPERVISOR_TOKEN` verwaltet das Add-on, sie
+lassen sich nicht überschreiben. Das Add-on-Log nennt nur die Namen der
+geladenen Variablen, nie ihre Werte.
 
-Changes take effect after restarting the add-on. Running panes are lost on a
-restart, see below.
+### Anweisungen und Berechtigungen für Agents
 
-## What persists
+Beim Start schreibt das Add-on einen verwalteten Block in `~/.claude/CLAUDE.md`
+(Claude Code) und `~/.codex/AGENTS.md` (Codex). Er beschreibt die Umgebung, die
+Werkzeuge und Grundregeln. Mit `agent_instructions` hängst du eigene Anweisungen
+an. Text außerhalb des Blocks bleibt unverändert, Änderungen im Block werden beim
+nächsten Start überschrieben.
 
-The home directory lives in `/data/home` and survives restarts and updates:
-herdr state (`~/.config/herdr`), Claude Code including its login (`~/.local`,
-`~/.claude`), git configuration and shell history.
+In `~/.claude/settings.json` ergänzt das Add-on Berechtigungsregeln:
 
-After a restart, herdr restores workspaces, tabs and panes with their working
-directories. Running processes do not survive a restart; supported agents can
-resume their sessions.
+- Lesende Befehle wie `ha-state`, `ha-check`, `ha addons logs` und
+  `esphome-build compile` sind ohne Rückfrage erlaubt.
+- `claude_allow` und `claude_deny` nehmen weitere Regeln im Format von
+  Claude Code auf, z. B. `Bash(git status)` oder `Edit(/config/packages/**)`.
+- Regeln, die du selbst in `settings.json` einträgst, bleiben erhalten. Regeln,
+  die das Add-on gesetzt hat und die nicht mehr konfiguriert sind, entfernt es
+  wieder.
 
-## Environment
+Änderungen wirken nach einem Neustart des Add-ons. Laufende Panes gehen dabei
+verloren, siehe unten.
 
-- `/config`, `/share` and `/addons` are mounted read-write; the add-on's own
-  config folder is at `/addon_config`.
-- `SUPERVISOR_TOKEN` is available in all panes and login shells
+## Was erhalten bleibt
+
+Das Home-Verzeichnis liegt in `/data/home` und übersteht Neustarts und Updates:
+herdr-Zustand (`~/.config/herdr`), Claude Code samt Anmeldung (`~/.local`,
+`~/.claude`), git-Konfiguration und Shell-Verlauf.
+
+Nach einem Neustart stellt herdr Workspaces, Tabs und Panes mit ihren
+Arbeitsverzeichnissen wieder her. Laufende Prozesse überstehen einen Neustart
+nicht; unterstützte Agents können ihre Sitzungen fortsetzen.
+
+## Umgebung
+
+- `/config`, `/share` und `/addons` sind beschreibbar eingebunden, der eigene
+  Konfigurationsordner des Add-ons liegt unter `/addon_config`.
+- `SUPERVISOR_TOKEN` steht in allen Panes und Login-Shells bereit
   (`http://supervisor/core/api/...`).
-- Claude Code is installed on first start and updates itself.
+- Claude Code wird beim ersten Start installiert und aktualisiert sich selbst.
 
-## Home Assistant tools
+## Home-Assistant-Werkzeuge
 
-| Tool | Purpose |
+| Werkzeug | Zweck |
 |---|---|
-| `ha-state [entity\|domain.\|pattern] [-a]` | Entity states, e.g. `ha-state light.` |
-| `ha-api [-s] [METHOD] PATH [JSON]` | Core REST API, `-s` for the Supervisor API |
-| `ha-ws TYPE [JSON]` | One WebSocket API command (registries, storage dashboards) |
-| `ha-check` | Validate the configuration |
-| `ha-notify "message" ["title"]` | Notification in Home Assistant, or via `HA_NOTIFY_SERVICE` |
-| `ha`, `yq` | Supervisor CLI and YAML editor |
-| `esphome-build compile\|upload\|install FILE` | Build and flash ESPHome firmware through the Device Builder |
-| `esphome-mcp [--check]` | MCP bridge to the Device Builder (ESPHome 2026.10 and newer) |
+| `ha-state [entity\|domain.\|muster] [-a]` | Zustände von Entitäten, z. B. `ha-state light.` |
+| `ha-api [-s] [METHODE] PFAD [JSON]` | REST-API von Core, `-s` für die Supervisor-API |
+| `ha-ws TYP [JSON]` | Ein Befehl der WebSocket-API (Registries, Storage-Dashboards) |
+| `ha-check` | Konfiguration prüfen |
+| `ha-notify "Text" ["Titel"]` | Benachrichtigung in Home Assistant oder über `HA_NOTIFY_SERVICE` |
+| `ha`, `yq` | Supervisor-CLI und YAML-Editor |
+| `esphome-build compile\|upload\|install DATEI` | ESPHome-Firmware über den Device Builder bauen und flashen |
+| `esphome-mcp [--check]` | MCP-Brücke zum Device Builder (ab ESPHome 2026.10) |
 
-The Claude Code skills `home-assistant` and `esphome` describe these tools. They
-are copied to `~/.claude/skills` on every start, so local edits to these two
-skills are overwritten. The MCP server `esphome` is registered for Claude Code
-on start unless one with that name exists.
+Die Claude-Code-Skills `home-assistant` und `esphome` beschreiben diese
+Werkzeuge. Sie werden bei jedem Start nach `~/.claude/skills` kopiert, eigene
+Änderungen an diesen beiden Skills gehen dabei verloren. Der MCP-Server `esphome`
+wird beim Start für Claude Code eingetragen, sofern es noch keinen mit diesem
+Namen gibt.
 
 ### ESPHome
 
-`esphome-build` and `esphome-mcp` drive the ESPHome Device Builder add-on, so
-builds and installs use its toolchain and stored credentials. Add-ons cannot
-open ingress sessions, so both use the builder's own port:
+`esphome-build` und `esphome-mcp` steuern das Add-on ESPHome Device Builder.
+Builds und Installationen nutzen also dessen Toolchain und gespeicherte
+Zugangsdaten. Add-ons können keine Ingress-Sitzungen öffnen, deshalb verwenden
+beide den eigenen Port des Device Builders:
 
-1. ESPHome add-on → Configuration: enable `leave_front_door_open`.
-2. Under Network, set port `6052/tcp` to `6052` and restart the add-on.
+1. ESPHome-Add-on → Konfiguration: `leave_front_door_open` einschalten.
+2. Unter Netzwerk den Port `6052/tcp` auf `6052` setzen und das Add-on neu
+   starten.
 
-The tools find the port by themselves; `ESPHOME_URL` overrides the address.
-**The Device Builder then has no login on port 6052**: anyone in your network
-can change and flash your devices. Only do this on a trusted network.
+Die Werkzeuge finden den Port selbst, `ESPHOME_URL` überschreibt die Adresse.
+**Der Device Builder hat auf Port 6052 dann keine Anmeldung**: Jeder in deinem
+Netzwerk kann deine Geräte ändern und flashen. Mach das nur in einem
+vertrauenswürdigen Netzwerk.
 
-`esphome-mcp` needs the builder's MCP endpoint (ESPHome 2026.10 and newer);
-until then it reports that and `esphome-build` does the job.
+`esphome-mcp` braucht den MCP-Endpunkt des Device Builders (ab ESPHome 2026.10).
+Bis dahin meldet es das, und `esphome-build` übernimmt.
 
-## Security
+## Sicherheit
 
-This add-on gives full shell access with write access to your Home Assistant
-configuration and the Supervisor API with the role `manager` (manage and
-reconfigure add-ons, backups). Only add keys you trust, and do not expose port
-2222 to the internet.
+Das Add-on bietet vollen Shell-Zugriff mit Schreibrechten auf deine
+Home-Assistant-Konfiguration und auf die Supervisor-API mit der Rolle `manager`
+(Add-ons verwalten und umkonfigurieren, Backups). Trag nur Schlüssel ein, denen
+du vertraust, und gib Port 2222 nicht ins Internet frei.

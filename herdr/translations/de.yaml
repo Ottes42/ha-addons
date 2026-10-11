@@ -1,0 +1,27 @@
+configuration:
+  authorized_keys:
+    name: Erlaubte SSH-Schlüssel
+    description: Öffentliche Schlüssel, die sich auf Port 2222 als root anmelden dürfen.
+  ha_secrets:
+    name: Geheimnisse aus secrets.yaml
+    description: >-
+      Schlüssel aus /config/secrets.yaml, die als Umgebungsvariablen exportiert werden.
+      `grocy_api_key` wird zu GROCY_API_KEY, `GROCY=grocy_api_key` setzt einen eigenen Namen.
+  env_vars:
+    name: Umgebungsvariablen
+    description: Weitere Variablen (Name und Wert) für herdr-Panes und Shells.
+  agent_instructions:
+    name: Anweisungen für Agents
+    description: >-
+      Eigene Anweisungen für Claude Code und andere Agents, angehängt an den
+      verwalteten Block in ~/.claude/CLAUDE.md und ~/.codex/AGENTS.md.
+  claude_allow:
+    name: Claude Code – erlaubte Regeln
+    description: >-
+      Zusätzliche Berechtigungsregeln ohne Rückfrage, z. B. Bash(git status).
+      Lesende Home-Assistant-Werkzeuge sind standardmäßig erlaubt.
+  claude_deny:
+    name: Claude Code – verbotene Regeln
+    description: Berechtigungsregeln, die Claude Code nie nutzen darf, z. B. Bash(rm -rf *).
+network:
+  2222/tcp: SSH (für herdr --remote)

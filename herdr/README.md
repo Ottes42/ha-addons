@@ -1,42 +1,47 @@
 # herdr Add-on
 
-![Supports amd64](https://img.shields.io/badge/amd64-yes-green.svg)
-![Supports aarch64](https://img.shields.io/badge/aarch64-yes-green.svg)
+![Unterstützt amd64](https://img.shields.io/badge/amd64-ja-green.svg)
+![Unterstützt aarch64](https://img.shields.io/badge/aarch64-ja-green.svg)
 
-A persistent [herdr](https://herdr.dev) server inside Home Assistant. herdr is a
-terminal multiplexer for coding agents such as Claude Code: sessions keep running
-in the add-on, whether the client disconnects, the laptop lid closes or the SSH
-connection drops.
+Ein dauerhaft laufender [herdr](https://herdr.dev)-Server in Home Assistant.
+herdr ist ein Terminal-Multiplexer für Coding-Agents wie Claude Code: Sitzungen
+laufen im Add-on weiter, auch wenn der Client die Verbindung trennt, der Laptop
+zugeklappt wird oder die SSH-Verbindung abreißt.
 
-## Features
+## Funktionen
 
-- herdr server starts automatically with Home Assistant (with watchdog)
-- **Web terminal** in the sidebar (ingress)
-- **SSH on port 2222** (public key only) for `herdr --remote` from your machine
-- **Claude Code** is installed on first start and updates itself
-- **Environment variables** for API keys and tokens, from `secrets.yaml`, an env
-  file or the configuration UI
-- `/config`, `/share` and `/addons` writable, `SUPERVISOR_TOKEN` in all panes
-- **Home Assistant tools** for agents: `ha-state`, `ha-api`, `ha-ws`, `ha-check`,
-  `ha-notify`, the Supervisor CLI `ha` and `yq`
-- **ESPHome**: `esphome-build` compiles and flashes through the Device Builder,
-  `esphome-mcp` connects Claude Code to its MCP server
-- **Claude Code skills** `home-assistant` and `esphome`, kept up to date by the
-  add-on
-- Home directory in `/data`: herdr layout, Claude login, git config and history
-  survive restarts and updates
+- herdr-Server startet automatisch mit Home Assistant (mit Watchdog)
+- **Web-Terminal** in der Seitenleiste (Ingress)
+- **SSH auf Port 2222** (nur mit öffentlichem Schlüssel) für `herdr --remote`
+  vom eigenen Rechner
+- **Claude Code** wird beim ersten Start installiert und aktualisiert sich selbst
+- **Umgebungsvariablen** für API-Schlüssel und Tokens, aus `secrets.yaml`, einer
+  Env-Datei oder der Konfigurationsoberfläche
+- `/config`, `/share` und `/addons` beschreibbar, `SUPERVISOR_TOKEN` in allen Panes
+- **Home-Assistant-Werkzeuge** für Agents: `ha-state`, `ha-api`, `ha-ws`,
+  `ha-check`, `ha-notify`, die Supervisor-CLI `ha` und `yq`
+- **ESPHome**: `esphome-build` baut und flasht über den Device Builder,
+  `esphome-mcp` verbindet Claude Code mit dessen MCP-Server
+- **Anweisungen und Berechtigungen für Agents**: verwalteter Block in
+  `CLAUDE.md`/`AGENTS.md`, eigene Anweisungen und Berechtigungsregeln über die
+  Konfiguration
+- **Claude-Code-Skills** `home-assistant` und `esphome`, vom Add-on aktuell
+  gehalten
+- Home-Verzeichnis in `/data`: herdr-Layout, Claude-Anmeldung, git-Konfiguration
+  und Verlauf überstehen Neustarts und Updates
 
 ## Installation
 
-1. Add this repository to the add-on store:
+1. Dieses Repository zum Add-on-Store hinzufügen:
 
-   [![Add repository](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2FOttes42%2Fha-addons)
+   [![Repository hinzufügen](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2FOttes42%2Fha-addons)
 
-2. Install "herdr". The image is built locally, which takes a few minutes.
-3. Add your SSH public keys under `authorized_keys` in the configuration.
-4. Start the add-on and open "herdr" in the sidebar.
+2. „herdr“ installieren. Das Image wird lokal gebaut, das dauert ein paar Minuten.
+3. In der Konfiguration unter `authorized_keys` die öffentlichen SSH-Schlüssel
+   eintragen.
+4. Add-on starten und „herdr“ in der Seitenleiste öffnen.
 
-## Connecting from your machine
+## Vom eigenen Rechner verbinden
 
 `~/.ssh/config`:
 
@@ -48,15 +53,15 @@ Host ha-herdr
 ```
 
 ```sh
-herdr --remote ha-herdr   # herdr installed locally, thin client
-ssh ha-herdr              # or plain SSH, then run: herdr
+herdr --remote ha-herdr   # herdr lokal installiert, schlanker Client
+ssh ha-herdr              # oder einfach SSH, dann: herdr
 ```
 
-## Restarts
+## Neustarts
 
-After a restart, herdr restores workspaces, tabs and panes with their working
-directories. Running processes do not survive a restart; supported agents can
-resume their sessions.
+Nach einem Neustart stellt herdr Workspaces, Tabs und Panes mit ihren
+Arbeitsverzeichnissen wieder her. Laufende Prozesse überstehen einen Neustart
+nicht; unterstützte Agents können ihre Sitzungen fortsetzen.
 
-More details, including environment variables, the tools and the ESPHome
-setup: [DOCS.md](DOCS.md)
+Mehr Details zu Umgebungsvariablen, Werkzeugen, Einfügen im Web-Terminal und
+der ESPHome-Einrichtung: [DOCS.md](DOCS.md)

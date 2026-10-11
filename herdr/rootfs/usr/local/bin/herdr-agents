@@ -1,0 +1,105 @@
+#!/usr/bin/env python3
+"""Set up instructions and permissions for coding agents in the persistent home.
+
+- Writes the add-on's notes plus the option `agent_instructions` as a managed
+  block into ~/.claude/CLAUDE.md and ~/.codex/AGENTS.md. Text outside the
+  block is left alone.
+- Merges default permission rules plus the options `claude_allow` and
+  `claude_deny` into ~/.claude/settings.json. Rules the add-on added earlier
+  and no longer wants are removed, rules added by hand stay.
+
+HERDR_AGENTS_HOME overrides the home directory (for tests).
+"""
+import json
+import os
+import sys
+from pathlib import Path
+
+OPTIONS = Path(os.environ.get("HERDR_OPTIONS", "/data/options.json"))
+NOTES = Path(__file__).resolve().parent.parent.parent / "share" / "herdr" / "AGENTS.md"
+HOME = Path(os.environ.get("HERDR_AGENTS_HOME", Path.home()))
+STATE = HOME / ".config" / "herdr-addon" / "managed-permissions.json"
+BEGIN = "<!-- herdr add-on: begin (managed, edits are overwritten) -->"
+END = "<!-- herdr add-on: end -->"
+
+# Read-only commands that should not need a confirmation
+DEFAULT_ALLOW = [
+    "Bash(ha-state)",
+    "Bash(ha-state *)",
+    "Bash(ha-check)",
+    "Bash(ha-api states*)",
+    "Bash(ha-api -s addons*)",
+    "Bash(ha addons)",
+    "Bash(ha addons info *)",
+    "Bash(ha addons logs *)",
+    "Bash(ha core info)",
+    "Bash(ha core check)",
+    "Bash(esphome-mcp --check)",
+    "Bash(esphome-build compile *)",
+]
+
+
+def log(message):
+    print(f"[herdr-agents] {message}", file=sys.stderr)
+
+
+def write_block(path, content):
+    block = f"{BEGIN}\n{content.strip()}\n{END}\n"
+    text = path.read_text() if path.exists() else ""
+    if BEGIN in text and END in text:
+        head, _, rest = text.partition(BEGIN)
+        _, _, tail = rest.partition(END)
+        text = head + block + tail.lstrip("\n")
+    else:
+        text = block + ("\n" + text if text else "")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text)
+
+
+def merge_permissions(allow, deny):
+    settings_file = HOME / ".claude" / "settings.json"
+    try:
+        settings = json.loads(settings_file.read_text()) if settings_file.exists() else {}
+    except ValueError:
+        log(f"{settings_file} is not valid JSON, permissions not changed")
+        return
+    try:
+        previous = json.loads(STATE.read_text())
+    except (OSError, ValueError):
+        previous = {}
+
+    permissions = settings.setdefault("permissions", {})
+    for key, wanted in (("allow", allow), ("deny", deny)):
+        managed_before = previous.get(key, [])
+        rules = [r for r in permissions.get(key, []) if r not in managed_before or r in wanted]
+        rules += [r for r in wanted if r not in rules]
+        if rules:
+            permissions[key] = rules
+        else:
+            permissions.pop(key, None)
+    if not permissions:
+        settings.pop("permissions")
+
+    settings_file.parent.mkdir(parents=True, exist_ok=True)
+    settings_file.write_text(json.dumps(settings, indent=2, ensure_ascii=False) + "\n")
+    STATE.parent.mkdir(parents=True, exist_ok=True)
+    STATE.write_text(json.dumps({"allow": allow, "deny": deny}))
+
+
+def main():
+    options = json.loads(OPTIONS.read_text()) if OPTIONS.exists() else {}
+    notes = NOTES.read_text()
+    custom = (options.get("agent_instructions") or "").strip()
+    if custom:
+        notes += f"\n### Anweisungen aus der Add-on-Konfiguration\n\n{custom}\n"
+    for path in (HOME / ".claude" / "CLAUDE.md", HOME / ".codex" / "AGENTS.md"):
+        write_block(path, notes)
+
+    allow = DEFAULT_ALLOW + [r for r in options.get("claude_allow") or [] if r not in DEFAULT_ALLOW]
+    deny = list(options.get("claude_deny") or [])
+    merge_permissions(allow, deny)
+    log(f"instructions written, {len(allow)} allow and {len(deny)} deny rules")
+
+
+if __name__ == "__main__":
+    main()

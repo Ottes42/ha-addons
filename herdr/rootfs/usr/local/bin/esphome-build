@@ -26,7 +26,7 @@ def run(base, action, configuration, port):
     if action == "upload":
         message["port"] = port
     url = base.replace("http", "ws", 1) + f"/{action}"
-    with connect(url, max_size=None, open_timeout=30) as ws:
+    with connect(url, max_size=None, open_timeout=30, ping_interval=None) as ws:
         ws.send(json.dumps(message))
         while True:
             frame = json.loads(ws.recv(timeout=1800))
