@@ -1,0 +1,114 @@
+#!/usr/bin/env python3
+"""stdio MCP bridge to the ESPHome Device Builder (its /api/mcp endpoint).
+
+The Device Builder only trusts its ingress site, so the bridge goes through the
+Supervisor's ingress proxy. That needs the add-on role `admin` (POST
+/ingress/session). Every JSON-RPC message from stdin is forwarded as one POST;
+the reply is written to stdout.
+
+  esphome-mcp           run as MCP server (Claude Code starts it)
+  esphome-mcp --check   test the connection and list the tools
+
+ESPHOME_ADDON overrides the add-on slug (default: first running one of
+5c53de3b_esphome, 5c53de3b_esphome-beta, 5c53de3b_esphome-dev).
+"""
+import json
+import os
+import sys
+
+sys.path.insert(0, "/usr/local/lib/herdr")
+import hatools  # noqa: E402
+
+SLUGS = ["5c53de3b_esphome", "5c53de3b_esphome-beta", "5c53de3b_esphome-dev"]
+
+
+class Bridge:
+    def __init__(self):
+        self.base = None
+        self.session = None
+
+    def _ingress_base(self):
+        slugs = [os.environ["ESPHOME_ADDON"]] if os.environ.get("ESPHOME_ADDON") else SLUGS
+        for slug in slugs:
+            status, info = hatools.supervisor("GET", f"addons/{slug}/info")
+            if status == 200 and isinstance(info, dict) and info.get("state") == "started":
+                token = (info.get("ingress_entry") or "").rstrip("/").rsplit("/", 1)[-1]
+                return f"{hatools.SUPERVISOR}/ingress/{token}"
+        raise RuntimeError(f"no running ESPHome add-on found ({', '.join(slugs)})")
+
+    def _new_session(self):
+        status, data = hatools.supervisor("POST", "ingress/session", {})
+        if status == 403:
+            raise RuntimeError("Supervisor denied an ingress session, the add-on needs hassio_role admin")
+        if status != 200 or not isinstance(data, dict):
+            raise RuntimeError(f"creating ingress session failed: {status} {data}")
+        return data["session"]
+
+    def post(self, payload):
+        if self.base is None:
+            self.base = self._ingress_base()
+        for attempt in range(2):
+            if self.session is None:
+                self.session = self._new_session()
+            status, _, raw = hatools.request(
+                "POST", f"{self.base}/api/mcp", payload,
+                headers={"Cookie": f"ingress_session={self.session}"}, timeout=120,
+            )
+            if status in (401, 403) and attempt == 0:
+                self.session = None  # expired, retry once with a fresh session
+                continue
+            if status == 202:
+                return None
+            if status != 200:
+                raise RuntimeError(f"Device Builder answered {status}: {raw[:300].decode(errors='replace')}")
+            return raw.decode()
+        return None
+
+
+def error_reply(message, error):
+    if not isinstance(message, dict) or message.get("id") is None:
+        return None
+    return json.dumps({"jsonrpc": "2.0", "id": message["id"], "error": {"code": -32603, "message": str(error)}})
+
+
+def check(bridge):
+    init = {
+        "jsonrpc": "2.0", "id": 1, "method": "initialize",
+        "params": {"protocolVersion": "2025-11-25", "capabilities": {},
+                   "clientInfo": {"name": "esphome-mcp", "version": "1"}},
+    }
+    server = json.loads(bridge.post(init))["result"]["serverInfo"]
+    tools = json.loads(bridge.post({"jsonrpc": "2.0", "id": 2, "method": "tools/list"}))["result"]["tools"]
+    print(f"{server['name']} {server['version']} via {bridge.base}")
+    print("tools: " + ", ".join(t["name"] for t in tools))
+
+
+def main():
+    bridge = Bridge()
+    if len(sys.argv) > 1:
+        if sys.argv[1] != "--check":
+            print(__doc__.strip())
+            return
+        try:
+            check(bridge)
+        except RuntimeError as err:
+            hatools.die(str(err))
+        return
+    for line in sys.stdin:
+        if not line.strip():
+            continue
+        try:
+            message = json.loads(line)
+        except ValueError:
+            continue
+        try:
+            reply = bridge.post(message)
+        except (RuntimeError, OSError, SystemExit) as err:
+            reply = error_reply(message, err)
+        if reply:
+            sys.stdout.write(reply.strip() + "\n")
+            sys.stdout.flush()
+
+
+if __name__ == "__main__":
+    main()

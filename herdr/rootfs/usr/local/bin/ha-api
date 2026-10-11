@@ -1,0 +1,35 @@
+#!/usr/bin/env python3
+"""Call the Home Assistant Core REST API (or the Supervisor API with -s).
+
+  ha-api states/sun.sun
+  ha-api POST services/light/turn_on '{"entity_id": "light.kitchen"}'
+  ha-api POST template '{"template": "{{ states.light | count }}"}'
+  ha-api -s addons/self/info
+"""
+import sys
+
+sys.path.insert(0, "/usr/local/lib/herdr")
+import hatools  # noqa: E402
+
+METHODS = {"GET", "POST", "PUT", "PATCH", "DELETE"}
+
+args = sys.argv[1:]
+if not args or args[0] in ("-h", "--help"):
+    print(__doc__.strip())
+    sys.exit(0 if args else 2)
+use_supervisor = args[0] == "-s"
+if use_supervisor:
+    args = args[1:]
+method = "GET"
+if args and args[0].upper() in METHODS:
+    method, args = args[0].upper(), args[1:]
+if not args:
+    hatools.die("path missing")
+path, body = args[0], hatools.read_json_arg(args[1] if len(args) > 1 else None)
+if method != "GET" and body is None:
+    body = {}
+
+call = hatools.supervisor if use_supervisor else hatools.core
+status, result = call(method, path, body, timeout=300)
+hatools.dump(result)
+sys.exit(0 if status < 400 else 1)

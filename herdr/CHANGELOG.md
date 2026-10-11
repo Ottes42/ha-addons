@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.1.0
+
+- Home Assistant tools: `ha-state`, `ha-api`, `ha-ws`, `ha-check`, `ha-notify`,
+  plus the Supervisor CLI `ha` and `yq`
+- `esphome-mcp`: MCP bridge to the ESPHome Device Builder, registered for
+  Claude Code as `esphome` (compile, install and edit devices)
+- Bundled Claude Code skills `home-assistant` and `esphome`
+- Supervisor role `admin`, needed for the ESPHome ingress session and add-on
+  management
+
 ## 1.0.0
 
 - herdr 0.9.3

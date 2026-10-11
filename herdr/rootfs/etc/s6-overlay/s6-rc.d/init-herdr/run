@@ -42,3 +42,18 @@ if [[ ! -x "${HOME}/.local/bin/claude" ]]; then
     curl -fsSL https://claude.ai/install.sh | bash \
         || bashio::log.warning 'Claude Code installation failed, retrying on next start'
 fi
+
+# Bundled skills are managed by the add-on and refreshed on every start
+mkdir -p "${HOME}/.claude/skills"
+for skill in /usr/share/herdr/skills/*/; do
+    name="$(basename "${skill}")"
+    rm -rf "${HOME}/.claude/skills/${name}"
+    cp -r "${skill}" "${HOME}/.claude/skills/${name}"
+done
+
+# MCP bridge to the ESPHome Device Builder, registered once for Claude Code
+if [[ -x "${HOME}/.local/bin/claude" ]] \
+    && ! "${HOME}/.local/bin/claude" mcp get esphome >/dev/null 2>&1; then
+    "${HOME}/.local/bin/claude" mcp add --scope user esphome -- /usr/local/bin/esphome-mcp >/dev/null \
+        || bashio::log.warning 'Failed registering the esphome MCP server'
+fi

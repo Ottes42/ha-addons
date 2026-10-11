@@ -1,0 +1,17 @@
+#!/usr/bin/env python3
+"""Validate the Home Assistant configuration. Exit code 1 when it is invalid."""
+import sys
+
+sys.path.insert(0, "/usr/local/lib/herdr")
+import hatools  # noqa: E402
+
+status, result = hatools.core("POST", "config/core/check_config", {}, timeout=300)
+if status >= 400 or not isinstance(result, dict):
+    hatools.die(f"check failed: {result}")
+if result.get("result") == "valid":
+    print("Configuration valid")
+    for warning in (result.get("warnings") or "").splitlines():
+        print(f"warning: {warning}")
+    sys.exit(0)
+print(result.get("errors") or result)
+sys.exit(1)

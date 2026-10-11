@@ -80,8 +80,30 @@ resume their sessions.
   (`http://supervisor/core/api/...`).
 - Claude Code is installed on first start and updates itself.
 
+## Home Assistant tools
+
+| Tool | Purpose |
+|---|---|
+| `ha-state [entity\|domain.\|pattern] [-a]` | Entity states, e.g. `ha-state light.` |
+| `ha-api [-s] [METHOD] PATH [JSON]` | Core REST API, `-s` for the Supervisor API |
+| `ha-ws TYPE [JSON]` | One WebSocket API command (registries, storage dashboards) |
+| `ha-check` | Validate the configuration |
+| `ha-notify "message" ["title"]` | Notification in Home Assistant, or via `HA_NOTIFY_SERVICE` |
+| `ha`, `yq` | Supervisor CLI and YAML editor |
+| `esphome-mcp [--check]` | MCP bridge to the ESPHome Device Builder add-on |
+
+The Claude Code skills `home-assistant` and `esphome` describe these tools. They
+are copied to `~/.claude/skills` on every start, so local edits to these two
+skills are overwritten. The MCP server `esphome` is registered for Claude Code
+on start unless one with that name exists.
+
+`esphome-mcp` talks to the Device Builder's MCP endpoint through its ingress
+site, so builds and installs use the builder's toolchain and stored
+credentials. The ESPHome port 6052 does not need to be opened.
+
 ## Security
 
 This add-on gives full shell access with write access to your Home Assistant
-configuration and the Supervisor API. Only add keys you trust, and do not expose
-port 2222 to the internet.
+configuration and the Supervisor API with the role `admin` (manage and
+reconfigure all add-ons, open ingress sessions). Only add keys you trust, and
+do not expose port 2222 to the internet.

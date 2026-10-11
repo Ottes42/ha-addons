@@ -1,5 +1,5 @@
 name: herdr
-version: "1.0.0"
+version: "1.1.0"
 slug: herdr
 description: Persistent herdr server for coding agents (Claude Code), via SSH and web terminal
 url: https://github.com/Ottes42/ha-addons/tree/main/herdr
@@ -16,6 +16,9 @@ panel_icon: mdi:console-line
 panel_title: herdr
 homeassistant_api: true
 hassio_api: true
+# admin: ingress sessions for the ESPHome Device Builder MCP bridge, add-on logs
+# and management through the Supervisor API
+hassio_role: admin
 map:
   - type: homeassistant_config
     read_only: false
