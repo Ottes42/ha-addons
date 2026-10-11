@@ -8,8 +8,9 @@
 """
 import fnmatch
 import sys
+from pathlib import Path
 
-sys.path.insert(0, "/usr/local/lib/herdr")
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "lib" / "herdr"))
 import hatools  # noqa: E402
 
 args = [a for a in sys.argv[1:] if a not in ("-a", "--attributes")]

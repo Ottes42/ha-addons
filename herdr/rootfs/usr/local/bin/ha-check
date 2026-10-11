@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Validate the Home Assistant configuration. Exit code 1 when it is invalid."""
 import sys
+from pathlib import Path
 
-sys.path.insert(0, "/usr/local/lib/herdr")
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "lib" / "herdr"))
 import hatools  # noqa: E402
 
 status, result = hatools.core("POST", "config/core/check_config", {}, timeout=300)

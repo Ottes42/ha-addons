@@ -17,6 +17,12 @@ connection drops.
 - **Environment variables** for API keys and tokens, from `secrets.yaml`, an env
   file or the configuration UI
 - `/config`, `/share` and `/addons` writable, `SUPERVISOR_TOKEN` in all panes
+- **Home Assistant tools** for agents: `ha-state`, `ha-api`, `ha-ws`, `ha-check`,
+  `ha-notify`, the Supervisor CLI `ha` and `yq`
+- **ESPHome**: `esphome-build` compiles and flashes through the Device Builder,
+  `esphome-mcp` connects Claude Code to its MCP server
+- **Claude Code skills** `home-assistant` and `esphome`, kept up to date by the
+  add-on
 - Home directory in `/data`: herdr layout, Claude login, git config and history
   survive restarts and updates
 
@@ -52,4 +58,5 @@ After a restart, herdr restores workspaces, tabs and panes with their working
 directories. Running processes do not survive a restart; supported agents can
 resume their sessions.
 
-More details, including environment variables: [DOCS.md](DOCS.md)
+More details, including environment variables, the tools and the ESPHome
+setup: [DOCS.md](DOCS.md)

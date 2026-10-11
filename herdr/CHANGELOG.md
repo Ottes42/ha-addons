@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.2.0
+
+- `esphome-build`: compile, upload or install ESPHome firmware through the
+  Device Builder (works with ESPHome 2026.9)
+- `esphome-mcp` and `esphome-build` use the Device Builder's port 6052; add-ons
+  cannot open ingress sessions, so the role is back to `manager`
+- Tools find their library relative to their own path
+
 ## 1.1.0
 
 - Home Assistant tools: `ha-state`, `ha-api`, `ha-ws`, `ha-check`, `ha-notify`,

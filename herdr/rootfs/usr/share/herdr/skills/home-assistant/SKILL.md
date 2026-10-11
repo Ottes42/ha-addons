@@ -23,7 +23,7 @@ through the Supervisor proxy. Prefer them over hand-written curl or Python clien
   (`ha-api POST services/automation/reload`) instead of restarting Core.
 - Never edit `/config/.storage/` while Home Assistant runs; use `ha-ws` instead.
 - Render templates to test them: `ha-api POST template '{"template": "{{ ... }}"}'`.
-- The add-on runs with Supervisor role `admin`. Do not restart, stop or
+- The add-on runs with Supervisor role `manager`. Do not restart, stop or
   reconfigure the herdr add-on itself (it ends the session), and ask before
   restarting Core or other add-ons.
 - When a long or unattended task finishes, run `ha-notify`.

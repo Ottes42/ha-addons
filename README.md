@@ -4,4 +4,4 @@
 
 | Add-on | Description |
 |---|---|
-| [herdr](herdr/) | Persistent herdr server for coding agents, via SSH (port 2222) and web terminal |
+| [herdr](herdr/) | Persistent herdr server for coding agents (Claude Code) with Home Assistant and ESPHome tools, via SSH (port 2222) and web terminal |

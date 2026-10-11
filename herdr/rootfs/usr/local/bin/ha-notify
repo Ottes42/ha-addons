@@ -6,8 +6,9 @@ persistent notification (the bell in the sidebar).
 """
 import os
 import sys
+from pathlib import Path
 
-sys.path.insert(0, "/usr/local/lib/herdr")
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "lib" / "herdr"))
 import hatools  # noqa: E402
 
 if len(sys.argv) < 2 or sys.argv[1] in ("-h", "--help"):

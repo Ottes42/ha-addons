@@ -90,20 +90,33 @@ resume their sessions.
 | `ha-check` | Validate the configuration |
 | `ha-notify "message" ["title"]` | Notification in Home Assistant, or via `HA_NOTIFY_SERVICE` |
 | `ha`, `yq` | Supervisor CLI and YAML editor |
-| `esphome-mcp [--check]` | MCP bridge to the ESPHome Device Builder add-on |
+| `esphome-build compile\|upload\|install FILE` | Build and flash ESPHome firmware through the Device Builder |
+| `esphome-mcp [--check]` | MCP bridge to the Device Builder (ESPHome 2026.10 and newer) |
 
 The Claude Code skills `home-assistant` and `esphome` describe these tools. They
 are copied to `~/.claude/skills` on every start, so local edits to these two
 skills are overwritten. The MCP server `esphome` is registered for Claude Code
 on start unless one with that name exists.
 
-`esphome-mcp` talks to the Device Builder's MCP endpoint through its ingress
-site, so builds and installs use the builder's toolchain and stored
-credentials. The ESPHome port 6052 does not need to be opened.
+### ESPHome
+
+`esphome-build` and `esphome-mcp` drive the ESPHome Device Builder add-on, so
+builds and installs use its toolchain and stored credentials. Add-ons cannot
+open ingress sessions, so both use the builder's own port:
+
+1. ESPHome add-on → Configuration: enable `leave_front_door_open`.
+2. Under Network, set port `6052/tcp` to `6052` and restart the add-on.
+
+The tools find the port by themselves; `ESPHOME_URL` overrides the address.
+**The Device Builder then has no login on port 6052**: anyone in your network
+can change and flash your devices. Only do this on a trusted network.
+
+`esphome-mcp` needs the builder's MCP endpoint (ESPHome 2026.10 and newer);
+until then it reports that and `esphome-build` does the job.
 
 ## Security
 
 This add-on gives full shell access with write access to your Home Assistant
-configuration and the Supervisor API with the role `admin` (manage and
-reconfigure all add-ons, open ingress sessions). Only add keys you trust, and
-do not expose port 2222 to the internet.
+configuration and the Supervisor API with the role `manager` (manage and
+reconfigure add-ons, backups). Only add keys you trust, and do not expose port
+2222 to the internet.

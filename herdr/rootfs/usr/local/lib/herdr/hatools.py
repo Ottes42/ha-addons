@@ -24,10 +24,10 @@ def die(message, code=1):
     sys.exit(code)
 
 
-def request(method, url, body=None, headers=None, timeout=60):
-    """Send a request with the Supervisor token. Returns (status, headers, bytes)."""
+def request(method, url, body=None, headers=None, timeout=60, auth=True):
+    """Send a request, with the Supervisor token unless auth is False. Returns (status, headers, bytes)."""
     data = None
-    hdrs = {"Authorization": f"Bearer {token()}"}
+    hdrs = {"Authorization": f"Bearer {token()}"} if auth else {}
     if body is not None:
         data = body if isinstance(body, bytes) else json.dumps(body).encode()
         hdrs["Content-Type"] = "application/json"
@@ -81,3 +81,26 @@ def read_json_arg(arg):
         return json.loads(text)
     except ValueError as err:
         die(f"invalid JSON: {err}")
+
+
+ESPHOME_SLUGS = ["5c53de3b_esphome", "5c53de3b_esphome-beta", "5c53de3b_esphome-dev"]
+ESPHOME_SETUP_HINT = (
+    "in the ESPHome add-on enable 'leave_front_door_open' and map port 6052 "
+    "under Network, or set ESPHOME_URL"
+)
+
+
+def esphome_url():
+    """Base URL of the ESPHome Device Builder on its own port."""
+    if os.environ.get("ESPHOME_URL"):
+        return os.environ["ESPHOME_URL"].rstrip("/")
+    slugs = [os.environ["ESPHOME_ADDON"]] if os.environ.get("ESPHOME_ADDON") else ESPHOME_SLUGS
+    for slug in slugs:
+        status, info = supervisor("GET", f"addons/{slug}/info")
+        if status != 200 or not isinstance(info, dict) or info.get("state") != "started":
+            continue
+        port = (info.get("network") or {}).get("6052/tcp")
+        if not port:
+            raise RuntimeError(f"{slug}: port 6052 is not mapped; {ESPHOME_SETUP_HINT}")
+        return f"http://{info.get('ip_address') or 'homeassistant'}:{port}"
+    raise RuntimeError(f"no running ESPHome add-on found ({', '.join(slugs)})")
