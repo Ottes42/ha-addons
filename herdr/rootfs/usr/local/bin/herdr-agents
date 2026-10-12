@@ -87,6 +87,9 @@ def merge_permissions(allow, deny):
 
 
 def main():
+    if len(sys.argv) > 1 and sys.argv[1] in ("-h", "--help"):
+        print(__doc__.strip())
+        return
     options = json.loads(OPTIONS.read_text()) if OPTIONS.exists() else {}
     notes = NOTES.read_text()
     custom = (options.get("agent_instructions") or "").strip()

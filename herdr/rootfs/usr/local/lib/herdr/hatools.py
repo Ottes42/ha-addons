@@ -1,6 +1,7 @@
 """Shared helpers for the herdr Home Assistant tools (stdlib only)."""
 import json
 import os
+import signal
 import sys
 import urllib.error
 import urllib.request
@@ -8,6 +9,9 @@ from pathlib import Path
 
 SUPERVISOR = "http://supervisor"
 _S6_TOKEN = Path("/run/s6/container_environment/SUPERVISOR_TOKEN")
+
+# Exit quietly when piped into head and the like
+signal.signal(signal.SIGPIPE, signal.SIG_DFL)
 
 
 def token():

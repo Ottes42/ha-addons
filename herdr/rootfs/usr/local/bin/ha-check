@@ -6,6 +6,10 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "lib" / "herdr"))
 import hatools  # noqa: E402
 
+if len(sys.argv) > 1 and sys.argv[1] in ("-h", "--help"):
+    print(__doc__.strip())
+    sys.exit(0)
+
 status, result = hatools.core("POST", "config/core/check_config", {}, timeout=300)
 if status >= 400 or not isinstance(result, dict):
     hatools.die(f"check failed: {result}")

@@ -1,5 +1,11 @@
 # Changelog
 
+## Unveröffentlicht
+
+- `ha-state` und die anderen Werkzeuge brechen in einer Pipe (`| head`) ohne
+  Traceback ab
+- `ha-check --help` und `herdr-agents --help` zeigen die Hilfe, statt loszulaufen
+
 ## 1.2.0
 
 - Dokumentation, Konfigurationsoberfläche (neu `de.yaml`), Skills und
