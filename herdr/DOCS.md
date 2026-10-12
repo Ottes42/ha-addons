@@ -143,6 +143,26 @@ Nach einem Neustart stellt herdr Workspaces, Tabs und Panes mit ihren
 Arbeitsverzeichnissen wieder her. Laufende Prozesse überstehen einen Neustart
 nicht; unterstützte Agents können ihre Sitzungen fortsetzen.
 
+### Arbeitsverzeichnis für Claude Code
+
+herdr startet neue Panes in `/config`. Dort sollte auch Claude Code laufen:
+
+- **Vertrauensabfrage:** Claude Code fragt pro Verzeichnis einmal, ob du dem
+  Ordner vertraust, und merkt sich die Antwort. Für das Home-Verzeichnis
+  (`/data/home`) speichert es sie nie, dort kommt die Frage bei jedem Start.
+- **Memory:** Claude Code legt seine automatischen Notizen pro Startverzeichnis
+  ab (`~/.claude/projects/-config/memory/` für `/config`). Wer mal hier, mal dort
+  startet, hat getrennte Notizen.
+
+Workspaces aus älteren Versionen werden mit ihrem alten Verzeichnis
+wiederhergestellt, oft `/data/home`. Dann einen neuen Workspace in `/config`
+öffnen und den alten schließen.
+
+Allgemeine Regeln und Wissen über Home Assistant bringt das Add-on selbst mit
+(verwalteter Block in `~/.claude/CLAUDE.md`, Skills). Was nur deine Installation
+betrifft (Räume, Namen, eigene Pakete), gehört in `/config/CLAUDE.md`; laufende
+Projekte und persönliche Vorlieben in die Memory.
+
 ## Umgebung
 
 - `/config`, `/share` und `/addons` sind beschreibbar eingebunden, der eigene

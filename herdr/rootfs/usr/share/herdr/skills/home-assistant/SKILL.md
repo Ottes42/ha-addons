@@ -30,3 +30,21 @@ oder Python-Clients.
   nicht neu starten, stoppen oder umkonfigurieren (das beendet die Sitzung) und
   vor einem Neustart von Core oder anderen Add-ons nachfragen.
 - Wenn eine lange oder unbeaufsichtigte Aufgabe fertig ist, `ha-notify` ausführen.
+
+## Stolperfallen
+
+- **YAML-Dashboards** (`mode: yaml`): Home Assistant cacht die Konfiguration und
+  prüft nur die mtime der Hauptdatei, nicht die der per `!include` eingebundenen
+  Views. Nach Änderungen an einer eingebundenen Datei die Hauptdatei mit `touch`
+  anfassen, dann den Browser neu laden.
+- **Storage-Dashboards** (UI-Modus, `.storage/lovelace.*`): mit `ha-ws lovelace/config`
+  laden und mit `ha-ws lovelace/config/save` speichern, nie die Datei bearbeiten.
+- **Umbenennen von Geräten oder Entities**: Ist die gewünschte Entity-ID noch
+  belegt (z. B. von einem alten oder umgezogenen Gerät), bekommt die neue Entity
+  einen Ersatznamen wie `sensor.0x<ieee>_*` oder `_2`. Vorher mit
+  `ha-ws config/entity_registry/list` prüfen, die alte ID frei machen
+  (`config/entity_registry/update` mit `new_entity_id` oder löschen) und erst dann
+  umbenennen. Gerätenamen sagen nicht sicher, wo ein Gerät steht; im Zweifel
+  nachfragen.
+- **Automationen abschalten**: `automation.turn_off` bleibt über Neustarts
+  erhalten, solange die Automation kein `initial_state` hat.

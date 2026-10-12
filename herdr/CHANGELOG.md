@@ -5,6 +5,12 @@
 - Doku und Konfigurationsoberfläche raten davon ab, Tokens in `env_vars` zu
   speichern; Geheimnisse gehören in `secrets.yaml` und werden über `ha_secrets`
   eingebunden (mit Beispiel)
+- Agent-Regel: `/data/options.json` nie ganz ausgeben (enthält `env_vars` im
+  Klartext)
+- Skill `home-assistant`: Stolperfallen zu YAML- und Storage-Dashboards,
+  Umbenennen von Entities und dauerhaft abgeschalteten Automationen
+- Doku: Claude Code in `/config` starten (Vertrauensabfrage, Memory pro
+  Verzeichnis) und was ins Add-on, in `/config/CLAUDE.md` oder in die Memory gehört
 - Web-Terminal: Kopieren aus herdr und Claude Code (OSC 52) landet in der
   Zwischenablage des Rechners, `Strg+V` fügt ein
 - `ha-state` und die anderen Werkzeuge brechen in einer Pipe (`| head`) ohne

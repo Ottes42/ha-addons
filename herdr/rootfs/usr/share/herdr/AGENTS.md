@@ -37,5 +37,6 @@ Details stehen in den Claude-Code-Skills `home-assistant` und `esphome`.
 - Das herdr-Add-on selbst nie neu starten, stoppen oder umkonfigurieren: Das
   beendet alle Sitzungen, auch deine.
 - Geheimnisse (`secrets.yaml`, Tokens, Passwörter) nicht ausgeben, außer auf
-  ausdrücklichen Wunsch.
+  ausdrücklichen Wunsch. `/data/options.json` enthält die Add-on-Optionen samt
+  `env_vars` im Klartext: nur Schlüsselnamen auslesen, nie die ganze Datei.
 - Wenn eine lange oder unbeaufsichtigte Aufgabe fertig ist, `ha-notify` ausführen.
