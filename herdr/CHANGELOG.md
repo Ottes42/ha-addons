@@ -2,6 +2,9 @@
 
 ## Unveröffentlicht
 
+- Doku und Konfigurationsoberfläche raten davon ab, Tokens in `env_vars` zu
+  speichern; Geheimnisse gehören in `secrets.yaml` und werden über `ha_secrets`
+  eingebunden (mit Beispiel)
 - `ha-state` und die anderen Werkzeuge brechen in einer Pipe (`| head`) ohne
   Traceback ab
 - `ha-check --help` und `herdr-agents --help` zeigen die Hilfe, statt loszulaufen

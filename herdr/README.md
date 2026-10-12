@@ -15,8 +15,8 @@ zugeklappt wird oder die SSH-Verbindung abreißt.
 - **SSH auf Port 2222** (nur mit öffentlichem Schlüssel) für `herdr --remote`
   vom eigenen Rechner
 - **Claude Code** wird beim ersten Start installiert und aktualisiert sich selbst
-- **Umgebungsvariablen** für API-Schlüssel und Tokens, aus `secrets.yaml`, einer
-  Env-Datei oder der Konfigurationsoberfläche
+- **Umgebungsvariablen** für API-Schlüssel und Tokens aus `secrets.yaml`, dazu
+  eine Env-Datei und die Konfigurationsoberfläche für Werte, die nicht geheim sind
 - `/config`, `/share` und `/addons` beschreibbar, `SUPERVISOR_TOKEN` in allen Panes
 - **Home-Assistant-Werkzeuge** für Agents: `ha-state`, `ha-api`, `ha-ws`,
   `ha-check`, `ha-notify`, die Supervisor-CLI `ha` und `yq`

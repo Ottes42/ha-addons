@@ -45,8 +45,8 @@ ha_secrets:
   - grocy_api_key               # wird zu GROCY_API_KEY
   - OPENAI_API_KEY=openai_token # eigener Variablenname
 env_vars:
-  - name: SOME_TOKEN
-    value: "..."
+  - name: LOG_LEVEL             # nur für Werte, die nicht geheim sind
+    value: debug
 agent_instructions: "Antworte auf Deutsch."
 claude_allow:
   - Bash(git status)
@@ -61,23 +61,55 @@ SSH-Anmeldung möglich (das Web-Terminal funktioniert trotzdem).
 
 ### Umgebungsvariablen
 
-API-Schlüssel und Tokens (z. B. für Grocy oder andere Onlinedienste) lassen sich
-allen herdr-Panes und Login-Shells mitgeben. Es gibt drei optionale Quellen;
-kommt ein Name mehrfach vor, gewinnt die spätere:
+API-Schlüssel und Tokens (z. B. für GitHub, Grocy oder andere Onlinedienste)
+lassen sich allen herdr-Panes und Login-Shells mitgeben. Es gibt drei optionale
+Quellen; kommt ein Name mehrfach vor, gewinnt die spätere:
 
-1. **`ha_secrets`**: Schlüssel aus `/config/secrets.yaml` von Home Assistant. Nur
-   die hier aufgeführten Schlüssel werden exportiert, nie die ganze Datei.
-   `grocy_api_key` wird zu `GROCY_API_KEY`, `NAME=secret_key` setzt einen eigenen
-   Namen.
+1. **`ha_secrets`** (empfohlen für Geheimnisse): Schlüssel aus
+   `/config/secrets.yaml` von Home Assistant. Nur die hier aufgeführten
+   Schlüssel werden exportiert, nie die ganze Datei. `grocy_api_key` wird zu
+   `GROCY_API_KEY`, `NAME=secret_key` setzt einen eigenen Namen.
 2. **Env-Datei**: `/addon_configs/<slug>_herdr/env` (erreichbar über Samba oder
    das Studio-Code-Server-Add-on), eine Zeile `KEY=value` pro Variable, `#` für
    Kommentare. Die Datei wird beim ersten Start mit Beispielen angelegt.
 3. **`env_vars`**: Name/Wert-Paare aus der Konfigurationsoberfläche des Add-ons.
-   Die Werte werden dort verdeckt angezeigt.
+   Gedacht für Einstellungen, die nicht geheim sind.
 
 `HOME`, `PATH`, `SHELL`, `TERM` und `SUPERVISOR_TOKEN` verwaltet das Add-on, sie
 lassen sich nicht überschreiben. Das Add-on-Log nennt nur die Namen der
 geladenen Variablen, nie ihre Werte.
+
+#### Geheimnisse gehören in `secrets.yaml`
+
+Tokens und Passwörter bitte nicht in `env_vars` eintragen. Die Oberfläche zeigt
+die Werte zwar verdeckt an, gespeichert werden sie aber im Klartext in
+`/data/options.json` des Add-ons. Diese Datei liegt im selben Container, in dem
+die Agents als root arbeiten, und wird beim Untersuchen der Umgebung leicht
+mitgelesen. Dann steht das Token im Chatverlauf. Außerdem landet sie in jeder
+Add-on-Sicherung.
+
+Besser:
+
+1. Das Geheimnis in `/config/secrets.yaml` eintragen:
+
+   ```yaml
+   github_pat: ghp_...
+   ```
+
+2. In der Add-on-Konfiguration unter `ha_secrets` darauf verweisen:
+
+   ```yaml
+   ha_secrets:
+     - GITHUB_PAT=github_pat
+   ```
+
+3. Das Add-on neu starten. In den Panes steht dann `$GITHUB_PAT` bereit.
+
+So liegen alle Geheimnisse an einer Stelle, Agents behandeln `secrets.yaml` als
+vertraulich, und ein Token lässt sich an einer Stelle austauschen. Eine harte
+Grenze ist das nicht: Was als Umgebungsvariable exportiert wird, kann jeder
+Prozess im Add-on lesen, auch ein Agent. Gib dem Add-on deshalb nur Tokens mit
+den Rechten, die die Agents wirklich brauchen.
 
 ### Anweisungen und Berechtigungen für Agents
 

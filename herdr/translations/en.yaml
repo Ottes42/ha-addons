@@ -9,7 +9,10 @@ configuration:
       `grocy_api_key` becomes GROCY_API_KEY, `GROCY=grocy_api_key` sets a custom name.
   env_vars:
     name: Environment variables
-    description: Additional variables (name and value) for herdr panes and shells.
+    description: >-
+      Additional variables (name and value) for herdr panes and shells. No tokens or
+      passwords: values are stored in plain text in the add-on options. Put secrets in
+      /config/secrets.yaml and reference them under "Secrets from secrets.yaml" above.
   agent_instructions:
     name: Agent instructions
     description: >-
