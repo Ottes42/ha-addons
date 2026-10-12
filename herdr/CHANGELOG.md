@@ -1,6 +1,6 @@
 # Changelog
 
-## Unveröffentlicht
+## 1.2.1
 
 - Doku und Konfigurationsoberfläche raten davon ab, Tokens in `env_vars` zu
   speichern; Geheimnisse gehören in `secrets.yaml` und werden über `ha_secrets`
