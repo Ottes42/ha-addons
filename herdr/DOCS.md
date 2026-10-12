@@ -27,14 +27,15 @@ Verbindung trennt.
 
 ### Kopieren und Einfügen im Web-Terminal
 
-Das Web-Terminal (ttyd mit xterm.js) schickt `Strg+V` als Steuerzeichen an das
-Terminal, statt einzufügen. Diese Wege sollten funktionieren:
-
-- **Windows/Linux:** `Strg+Umschalt+V` oder `Umschalt+Einfg`
-- **macOS:** `Cmd+V`
-- **Maus:** herdr fängt die Maus ab. Mit gedrückter `Umschalt`-Taste
-  (macOS: `Option`) erscheint beim Rechtsklick das Kontextmenü des Browsers mit
-  „Einfügen“; so lässt sich auch Text markieren und kopieren.
+- **Einfügen:** `Strg+V` oder `Strg+Umschalt+V` (macOS: `Cmd+V`). Der Browser
+  fragt beim ersten Mal eventuell nach der Berechtigung. Alternativ mit
+  gedrückter `Umschalt`-Taste (macOS: `Option`) rechtsklicken und „Einfügen“
+  wählen.
+- **Kopieren:** Was herdr, Claude Code oder vim in die Zwischenablage kopieren
+  (OSC 52), landet in der Zwischenablage deines Rechners. Lässt der Browser das
+  ohne Klick nicht zu, erscheint oben rechts ein Knopf „In die Zwischenablage
+  kopieren“.
+- Text mit gedrückter `Umschalt`-Taste markieren kopiert ihn ebenfalls.
 
 ## Konfiguration
 

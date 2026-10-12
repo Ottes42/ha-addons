@@ -1,0 +1,31 @@
+#!/bin/bash
+# Build ttyd's start page with the clipboard script and print its path.
+# ttyd's page is fetched from a short-lived ttyd instance, so it always matches
+# the installed ttyd version. Exit code 1 when that fails.
+set -euo pipefail
+
+script=${HERDR_CLIPBOARD_JS:-/usr/share/herdr/ttyd-clipboard.js}
+out=/tmp/herdr-ttyd/index.html
+port=7682
+
+mkdir -p "${out%/*}"
+/usr/local/bin/ttyd --port "${port}" --interface 127.0.0.1 --once true >/dev/null 2>&1 &
+pid=$!
+trap 'kill "${pid}" 2>/dev/null || true' EXIT
+
+page=""
+for _ in $(seq 50); do
+    if page=$(curl -fsS "http://127.0.0.1:${port}/" 2>/dev/null) && [[ -n "${page}" ]]; then
+        break
+    fi
+    sleep 0.1
+done
+[[ "${page}" == *"</body>"* ]] || exit 1
+
+{
+    printf '%s' "${page%</body>*}"
+    printf '<script>\n'
+    cat "${script}"
+    printf '</script></body>%s' "${page##*</body>}"
+} >"${out}"
+echo "${out}"

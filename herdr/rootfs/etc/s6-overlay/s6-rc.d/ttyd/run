@@ -3,10 +3,18 @@
 # ==============================================================================
 # herdr add-on: web terminal behind ingress, attaches to the herdr server
 # ==============================================================================
+index_args=()
+if index=$(/usr/local/lib/herdr/ttyd-index); then
+    index_args=(--index "${index}")
+else
+    bashio::log.warning 'Clipboard support for the web terminal not available'
+fi
+
 bashio::log.info 'Starting web terminal...'
 exec /usr/local/bin/ttyd \
     --port 7681 \
     --writable \
     --ping-interval 30 \
     --client-option titleFixed=herdr \
+    "${index_args[@]}" \
     bash -lc 'cd /config && exec herdr'
