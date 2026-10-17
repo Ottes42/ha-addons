@@ -14,6 +14,8 @@ zugeklappt wird oder die SSH-Verbindung abreißt.
 - **Web-Terminal** in der Seitenleiste (Ingress)
 - **SSH auf Port 2222** (nur mit öffentlichem Schlüssel) für `herdr --remote`
   vom eigenen Rechner
+- **Eigener SSH-Schlüssel**, bleibt erhalten, öffentlicher Teil steht im Log:
+  zum Verbinden mit anderen herdrs
 - **Claude Code** wird beim ersten Start installiert und aktualisiert sich selbst
 - **Umgebungsvariablen** für API-Schlüssel und Tokens aus `secrets.yaml`, dazu
   eine Env-Datei und die Konfigurationsoberfläche für Werte, die nicht geheim sind

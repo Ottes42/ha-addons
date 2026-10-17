@@ -25,6 +25,29 @@ Verbindung trennt.
   ssh ha-herdr              # oder einfach SSH, dann: herdr
   ```
 
+### Mit anderen herdrs verbinden
+
+Das Add-on hat einen eigenen SSH-Schlüssel (`~/.ssh/id_ed25519`). Er entsteht
+beim ersten Start und übersteht Neustarts und Updates. Den öffentlichen
+Schlüssel zeigt das Add-on bei jedem Start im **Log** an (Zeile „Public SSH key
+of this herdr“), im Terminal auch mit `cat ~/.ssh/id_ed25519.pub`.
+
+Trag ihn beim anderen herdr unter `authorized_keys` ein, dann geht von hier aus:
+
+```
+# ~/.ssh/config (liegt in /data/home und bleibt erhalten)
+Host anderer-herdr
+  HostName anderer-host.local
+  Port 2222
+  User root
+```
+
+```sh
+herdr --remote anderer-herdr
+```
+
+Für einen neuen Schlüssel `~/.ssh/id_ed25519*` löschen und das Add-on neu starten.
+
 ### Kopieren und Einfügen im Web-Terminal
 
 - **Einfügen:** `Strg+V` oder `Strg+Umschalt+V` (macOS: `Cmd+V`). Der Browser

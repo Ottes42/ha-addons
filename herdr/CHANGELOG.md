@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.3.0
+
+- Eigener SSH-Schlüssel für ausgehende Verbindungen (`~/.ssh/id_ed25519`),
+  wird beim ersten Start erzeugt und bleibt erhalten. Der öffentliche Schlüssel
+  steht bei jedem Start im Add-on-Log, so lässt sich herdr mit anderen herdrs
+  verbinden (`herdr --remote`)
+
 ## 1.2.1
 
 - Doku und Konfigurationsoberfläche raten davon ab, Tokens in `env_vars` zu

@@ -4,6 +4,7 @@
 # herdr add-on: prepares the persistent home, SSH access and Claude Code
 # ==============================================================================
 readonly SSH_HOST_KEY=/data/ssh/ssh_host_ed25519_key
+readonly SSH_CLIENT_KEY="${HOME}/.ssh/id_ed25519"
 
 mkdir -p "${HOME}/.ssh" /data/ssh
 chmod 700 "${HOME}" "${HOME}/.ssh" /data/ssh
@@ -23,6 +24,18 @@ else
     bashio::log.warning 'No authorized_keys configured, SSH login is not possible'
 fi
 chmod 600 "${HOME}/.ssh/authorized_keys"
+
+# Client key for outgoing SSH (herdr --remote to other herdrs, git), persistent in /data
+if ! bashio::fs.file_exists "${SSH_CLIENT_KEY}"; then
+    bashio::log.info 'Generating SSH client key...'
+    ssh-keygen -q -t ed25519 -N '' -C "herdr@$(bashio::info.hostname 2>/dev/null || hostname)" \
+        -f "${SSH_CLIENT_KEY}" \
+        || bashio::log.warning 'Failed generating SSH client key'
+fi
+if bashio::fs.file_exists "${SSH_CLIENT_KEY}.pub"; then
+    bashio::log.info "Public SSH key of this herdr (add it to authorized_keys of other herdrs):"
+    bashio::log.info "$(cat "${SSH_CLIENT_KEY}.pub")"
+fi
 
 # Convenience links like in the SSH and VS Code add-ons
 for dir in config share addons; do
