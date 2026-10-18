@@ -25,6 +25,7 @@ RUN \
         jq \
         less \
         nano \
+        vim \
         openssh-server \
         procps \
         python3 \

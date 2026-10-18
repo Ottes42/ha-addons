@@ -1,5 +1,9 @@
 # Changelog
 
+## Unveröffentlicht
+
+- `vim` ist installiert
+
 ## 1.3.0
 
 - Eigener SSH-Schlüssel für ausgehende Verbindungen (`~/.ssh/id_ed25519`),
