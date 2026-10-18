@@ -25,13 +25,13 @@ RUN \
         jq \
         less \
         nano \
-        vim \
         openssh-server \
         procps \
         python3 \
         python3-websockets \
         python3-yaml \
         ripgrep \
+        vim \
     \
     && if [[ "${BUILD_ARCH}" = "aarch64" ]]; then ARCH="aarch64"; fi \
     && if [[ "${BUILD_ARCH}" = "amd64" ]]; then ARCH="x86_64"; fi \
