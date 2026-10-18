@@ -1,8 +1,10 @@
 # Changelog
 
-## Unveröffentlicht
+## 1.3.1
 
 - `vim` ist installiert
+- Doku: andere herdrs als gespeicherte Maschine verbinden (`herdr machine add`),
+  `herdr --remote` aus einem Pane heraus mit `env -u HERDR_ENV`
 
 ## 1.3.0
 

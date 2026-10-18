@@ -21,8 +21,9 @@ Verbindung trennt.
   ```
 
   ```sh
-  herdr --remote ha-herdr   # schlanker lokaler Client, herdr lokal installiert
-  ssh ha-herdr              # oder einfach SSH, dann: herdr
+  herdr machine add ha-herdr   # als Maschine speichern, erscheint in der Seitenleiste
+  herdr --remote ha-herdr      # oder direkt anhängen (schlanker lokaler Client)
+  ssh ha-herdr                 # oder einfach SSH, dann: herdr
   ```
 
 ### Mit anderen herdrs verbinden
@@ -32,7 +33,8 @@ beim ersten Start und übersteht Neustarts und Updates. Den öffentlichen
 Schlüssel zeigt das Add-on bei jedem Start im **Log** an (Zeile „Public SSH key
 of this herdr“), im Terminal auch mit `cat ~/.ssh/id_ed25519.pub`.
 
-Trag ihn beim anderen herdr unter `authorized_keys` ein, dann geht von hier aus:
+Trag ihn beim anderen herdr (oder beim Zielrechner) unter `authorized_keys`
+ein und leg hier einen Host-Eintrag an:
 
 ```
 # ~/.ssh/config (liegt in /data/home und bleibt erhalten)
@@ -42,9 +44,29 @@ Host anderer-herdr
   User root
 ```
 
+Am bequemsten ist eine **gespeicherte Maschine**. Sie erscheint in der
+Seitenleiste von herdr, ihre Workspaces lassen sich dort öffnen wie die eigenen:
+
 ```sh
-herdr --remote anderer-herdr
+herdr machine add anderer-herdr --label server   # einrichten und speichern
+herdr machine list                                # gespeicherte Maschinen
+herdr machine status                              # Verbindung prüfen
+herdr --machine server workspace list             # einzelner API-Befehl
 ```
+
+`herdr machine` kennt außerdem `reconnect`, `rename`, `remove`, `enable` und
+`disable`.
+
+Alternativ hängt `herdr --remote` den anderen herdr direkt an. In einem Pane
+dieses Add-ons verweigert herdr das als „nested herdr“, weil jedes Pane
+`HERDR_ENV=1` gesetzt hat. Für den einen Aufruf die Variable weglassen:
+
+```sh
+env -u HERDR_ENV herdr --remote anderer-herdr
+```
+
+Der äußere herdr fängt dabei seine eigenen Tastenkürzel zuerst ab, welche gelten,
+steuert `--remote-keybindings local|server`.
 
 Für einen neuen Schlüssel `~/.ssh/id_ed25519*` löschen und das Add-on neu starten.
 

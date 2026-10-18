@@ -55,9 +55,13 @@ Host ha-herdr
 ```
 
 ```sh
-herdr --remote ha-herdr   # herdr lokal installiert, schlanker Client
-ssh ha-herdr              # oder einfach SSH, dann: herdr
+herdr machine add ha-herdr   # als Maschine speichern, erscheint in der Seitenleiste
+herdr --remote ha-herdr      # oder direkt anhängen (schlanker Client)
+ssh ha-herdr                 # oder einfach SSH, dann: herdr
 ```
+
+Mit dem eigenen SSH-Schlüssel des Add-ons verbindet sich herdr genauso mit
+anderen herdrs, siehe Dokumentation („Mit anderen herdrs verbinden“).
 
 ## Neustarts
 
