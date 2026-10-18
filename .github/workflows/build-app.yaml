@@ -45,6 +45,15 @@ jobs:
           DESCRIPTION: ${{ steps.info.outputs.description }}
           URL: ${{ steps.info.outputs.url }}
         run: |
+          # The info helper returns JSON-encoded strings ("1.4.0"), decode them
+          unquote() {
+            if [[ "$1" == \"*\" ]]; then jq -rn --argjson v "$1" '$v'; else printf '%s' "$1"; fi
+          }
+          IMAGE="$(unquote "${IMAGE}")"
+          VERSION="$(unquote "${VERSION}")"
+          NAME="$(unquote "${NAME}")"
+          DESCRIPTION="$(unquote "${DESCRIPTION}")"
+          URL="$(unquote "${URL}")"
           if [[ -z "${IMAGE}" || "${IMAGE}" == "null" ]]; then
             echo "::error::${{ inputs.app }}/config.yaml has no image" && exit 1
           fi
