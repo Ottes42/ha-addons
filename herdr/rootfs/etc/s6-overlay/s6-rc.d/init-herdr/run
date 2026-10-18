@@ -44,6 +44,9 @@ done
 ln -sfn /config /homeassistant
 
 git config --global --replace-all safe.directory '*'
+# GitHub over HTTPS with GH_TOKEN or GITHUB_TOKEN (e.g. via ha_secrets), see gh
+git config --global --replace-all credential.https://github.com.helper \
+    '!/usr/local/bin/gh auth git-credential'
 
 # User-defined environment (secrets.yaml, /addon_config/env, options)
 herdr-env /run/herdr/env.sh \
@@ -63,6 +66,11 @@ for skill in /usr/share/herdr/skills/*/; do
     rm -rf "${HOME}/.claude/skills/${name}"
     cp -r "${skill}" "${HOME}/.claude/skills/${name}"
 done
+
+# herdr's own agent skill, generated so it always matches the installed binary
+mkdir -p "${HOME}/.claude/skills/herdr"
+herdr --skill > "${HOME}/.claude/skills/herdr/SKILL.md" \
+    || bashio::log.warning 'Failed writing the herdr skill'
 
 # Instructions and permissions for coding agents (managed block / rules only)
 herdr-agents || bashio::log.warning 'Failed setting up agent instructions and permissions'

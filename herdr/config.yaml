@@ -1,8 +1,9 @@
 name: herdr
-version: "1.3.1"
+version: "1.4.0"
 slug: herdr
 description: Dauerhaft laufender herdr-Server für Coding-Agents (Claude Code) mit Home-Assistant- und ESPHome-Werkzeugen
 url: https://github.com/Ottes42/ha-addons/tree/main/herdr
+image: ghcr.io/ottes42/herdr
 arch:
   - aarch64
   - amd64
@@ -29,6 +30,13 @@ map:
     read_only: false
   - type: addons
     read_only: false
+# Installed extensions and caches survive restarts, but not into backups;
+# after a restore herdr installs them again (herdr-extensions)
+backup_exclude:
+  - home/.cache
+  - home/.local/lib/node_modules
+  - home/.local/share/uv
+  - home/.local/share/claude/versions
 ports:
   2222/tcp: 2222
 ports_description:
@@ -40,6 +48,9 @@ options:
   agent_instructions: ""
   claude_allow: []
   claude_deny: []
+  apt_packages: []
+  npm_packages: []
+  uv_tools: []
 schema:
   authorized_keys:
     - str
@@ -52,4 +63,10 @@ schema:
   claude_allow:
     - str
   claude_deny:
+    - str
+  apt_packages:
+    - match(^[a-z0-9][a-z0-9+.:=~-]*$)
+  npm_packages:
+    - match(^(@[a-z0-9][a-z0-9._~-]*/)?[a-z0-9][a-z0-9._~-]*(@[A-Za-z0-9._~^<>=-]+)?$)
+  uv_tools:
     - str

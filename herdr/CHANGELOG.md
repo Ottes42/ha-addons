@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.4.0
+
+- **Fertiges Image** von GitHub (ghcr.io) statt Bau auf dem Home-Assistant-Rechner:
+  Updates gehen schneller und brauchen dort keinen Speicher mehr
+- **Erweiterungen** über die Konfiguration: `apt_packages`, `npm_packages`
+  (z. B. ruflo, ohne Version beim Start aktualisiert) und `uv_tools`. Ein
+  Hintergrunddienst installiert sie nach dem Start, Fehler halten das Add-on
+  nicht an. Eigene Startschritte unter `/addon_config/init.d/*.sh`
+- Node.js 24, `uv`/`uvx` und die GitHub-CLI `gh` sind dabei. Mit `GH_TOKEN`
+  funktionieren `gh` und `git push` über HTTPS
+- Backups ohne Caches, Erweiterungen und ältere Claude-Code-Versionen; nach
+  einer Wiederherstellung werden sie neu installiert
+- Web-Terminal: Strg+Enter und Umschalt+Enter kommen als eigene Tasten an,
+  in Claude Code „jetzt senden“ und „neue Zeile“
+- Claude-Code-Skill `herdr` (aus `herdr --skill`, passend zur installierten Version)
+- `build.yaml` entfällt, das Dockerfile ist die einzige Bauanleitung
+
 ## 1.3.1
 
 - `vim` ist installiert

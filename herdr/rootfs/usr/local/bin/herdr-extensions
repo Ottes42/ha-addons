@@ -1,0 +1,185 @@
+#!/command/with-contenv bashio
+# shellcheck shell=bash
+# ==============================================================================
+# herdr add-on: installs extensions from the add-on options, then runs the
+# user's start hooks. Runs in the background, herdr is already usable meanwhile.
+#
+#   apt_packages  Debian packages, installed again on every start (the
+#                 downloaded .deb files are cached, so nothing is fetched twice)
+#   npm_packages  global npm packages in ~/.local (persistent), updated on start
+#                 when a newer version exists; `name@version` pins a version
+#   uv_tools      Python tools via `uv tool` (persistent), upgraded on start
+#   /addon_config/init.d/*.sh  own setup steps, e.g. registering MCP servers
+#
+# Installed extensions and caches survive restarts but are excluded from
+# backups (backup_exclude); after a restore they are installed again.
+# ==============================================================================
+# A failing extension must never stop the add-on: no strict mode here
+set +o errexit +o nounset
+
+readonly STATE_DIR="${HOME}/.local/state/herdr-extensions"
+readonly APT_CACHE="${HOME}/.cache/herdr-apt"
+readonly HOOK_DIR=/addon_config/init.d
+
+export PATH="${HOME}/.local/bin:${PATH}"
+if [[ -r /run/herdr/env.sh ]]; then
+    # shellcheck disable=SC1091
+    source /run/herdr/env.sh
+fi
+mkdir -p "${STATE_DIR}"
+
+# Prints the configured list for an option, one entry per line
+option_list() {
+    bashio::config.has_value "$1" || return 0
+    bashio::config "$1" | sed '/^[[:space:]]*$/d'
+}
+
+# Entries that were managed last time but are no longer configured
+removed_entries() {
+    local state="${STATE_DIR}/$1"
+    [[ -f "${state}" ]] || return 0
+    grep -vxF -f <(printf '%s\n' "${@:2}") "${state}" || true
+}
+
+save_state() {
+    printf '%s\n' "${@:2}" | sed '/^$/d' > "${STATE_DIR}/$1"
+}
+
+# ------------------------------------------------------------------------------
+install_apt() {
+    local -a packages apt_opts
+    mapfile -t packages < <(option_list apt_packages)
+    ((${#packages[@]})) || return 0
+
+    mkdir -p "${APT_CACHE}/archives/partial" "${APT_CACHE}/lists/partial"
+    apt_opts=(
+        -o "Dir::Cache::archives=${APT_CACHE}/archives"
+        -o "Dir::State::lists=${APT_CACHE}/lists"
+        -o APT::Keep-Downloaded-Packages=true
+        -o Dpkg::Use-Pty=0
+        -o APT::Sandbox::User=root
+    )
+
+    # Package lists are refreshed once a week, or when an install fails
+    if [[ -z "$(find "${APT_CACHE}/lists" -maxdepth 1 -name '*Packages*' -mtime -7 -print -quit)" ]]; then
+        apt-get "${apt_opts[@]}" update -qq || bashio::log.warning 'apt: updating package lists failed'
+    fi
+
+    bashio::log.info "apt: ${packages[*]}"
+    if ! DEBIAN_FRONTEND=noninteractive apt-get "${apt_opts[@]}" install -y -qq \
+        --no-install-recommends "${packages[@]}" >/dev/null; then
+        apt-get "${apt_opts[@]}" update -qq
+        DEBIAN_FRONTEND=noninteractive apt-get "${apt_opts[@]}" install -y -qq \
+            --no-install-recommends "${packages[@]}" >/dev/null \
+            || bashio::log.warning 'apt: installing packages failed'
+    fi
+    # Keep only .deb files of the configured packages' current versions
+    apt-get "${apt_opts[@]}" autoclean -qq >/dev/null 2>&1 || true
+}
+
+# ------------------------------------------------------------------------------
+# Splits `name@version` (also `@scope/name@version`) into name and version
+npm_split() {
+    local spec="$1" name version=""
+    if [[ "${spec:1}" == *@* ]]; then
+        name="${spec%@*}"
+        version="${spec##*@}"
+    else
+        name="${spec}"
+    fi
+    printf '%s\n%s\n' "${name}" "${version}"
+}
+
+npm_installed_version() {
+    local manifest
+    manifest="${NPM_CONFIG_PREFIX:-${HOME}/.local}/lib/node_modules/$1/package.json"
+    [[ -r "${manifest}" ]] && jq -r '.version // empty' "${manifest}"
+}
+
+install_npm() {
+    local -a specs names=()
+    local spec name version installed wanted
+    mapfile -t specs < <(option_list npm_packages)
+
+    for spec in "${specs[@]}"; do
+        [[ -n "${spec}" ]] || continue
+        { read -r name; read -r version; } < <(npm_split "${spec}")
+        names+=("${name}")
+        installed="$(npm_installed_version "${name}")"
+        if [[ -n "${version}" && "${version}" =~ ^[0-9] ]]; then
+            wanted="${version}"
+        else
+            # Only the version number is fetched here, the package only on change
+            wanted="$(npm view "${name}@${version:-latest}" version --json 2>/dev/null \
+                | jq -r 'if type == "array" then last else . end // empty' 2>/dev/null)"
+        fi
+        if [[ -z "${wanted}" ]]; then
+            bashio::log.warning "npm: ${spec} not found, skipped"
+            continue
+        fi
+        if [[ "${installed}" == "${wanted}" ]]; then
+            bashio::log.info "npm: ${name} ${installed} is up to date"
+            continue
+        fi
+        bashio::log.info "npm: installing ${name} ${wanted}${installed:+ (was ${installed})}..."
+        npm install -g --no-fund --no-audit --loglevel=error "${name}@${wanted}" >/dev/null \
+            || bashio::log.warning "npm: installing ${name} failed"
+    done
+
+    while read -r name; do
+        [[ -n "${name}" ]] || continue
+        bashio::log.info "npm: removing ${name} (no longer configured)"
+        npm uninstall -g --loglevel=error "${name}" >/dev/null || true
+    done < <(removed_entries npm "${names[@]}")
+    save_state npm "${names[@]}"
+}
+
+# ------------------------------------------------------------------------------
+install_uv() {
+    local -a specs names=()
+    local spec name
+    mapfile -t specs < <(option_list uv_tools)
+
+    for spec in "${specs[@]}"; do
+        [[ -n "${spec}" ]] || continue
+        name="${spec%%[=<>!~\[]*}"
+        names+=("${name}")
+        if uv tool list 2>/dev/null | grep -q "^${name} "; then
+            if [[ "${spec}" == "${name}" ]]; then
+                uv tool upgrade -q "${name}" || bashio::log.warning "uv: upgrading ${name} failed"
+            fi
+        else
+            bashio::log.info "uv: installing ${spec}..."
+            uv tool install -q "${spec}" || bashio::log.warning "uv: installing ${spec} failed"
+        fi
+    done
+
+    while read -r name; do
+        [[ -n "${name}" ]] || continue
+        bashio::log.info "uv: removing ${name} (no longer configured)"
+        uv tool uninstall -q "${name}" || true
+    done < <(removed_entries uv "${names[@]}")
+    save_state uv "${names[@]}"
+}
+
+# ------------------------------------------------------------------------------
+run_hooks() {
+    local hook
+    [[ -d "${HOOK_DIR}" ]] || return 0
+    for hook in "${HOOK_DIR}"/*.sh; do
+        [[ -f "${hook}" ]] || continue
+        bashio::log.info "Running start hook $(basename "${hook}")..."
+        (cd /config && bash "${hook}") || bashio::log.warning "Start hook $(basename "${hook}") failed"
+    done
+}
+
+if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+    sed -n '3,16p' "$0" | sed 's/^# \{0,1\}//'
+    exit 0
+fi
+
+install_apt
+install_npm
+install_uv
+run_hooks
+bashio::log.info 'Extensions ready'

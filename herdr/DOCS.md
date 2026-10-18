@@ -81,6 +81,9 @@ Für einen neuen Schlüssel `~/.ssh/id_ed25519*` löschen und das Add-on neu sta
   ohne Klick nicht zu, erscheint oben rechts ein Knopf „In die Zwischenablage
   kopieren“.
 - Text mit gedrückter `Umschalt`-Taste markieren kopiert ihn ebenfalls.
+- **Strg+Enter und Umschalt+Enter** kommen als eigene Tasten an (Kitty-Protokoll).
+  In Claude Code heißt Strg+Enter „jetzt senden“, Umschalt+Enter „neue Zeile“.
+  In einer normalen Shell sind beide keine Enter-Taste mehr.
 
 ## Konfiguration
 
@@ -184,6 +187,10 @@ Das Home-Verzeichnis liegt in `/data/home` und übersteht Neustarts und Updates:
 herdr-Zustand (`~/.config/herdr`), Claude Code samt Anmeldung (`~/.local`,
 `~/.claude`), git-Konfiguration und Shell-Verlauf.
 
+Nicht ins Backup gehen Caches (`~/.cache`), Erweiterungen (siehe unten) und
+ältere Claude-Code-Versionen. Fehlt Claude Code nach einer Wiederherstellung,
+installiert das Add-on es beim Start neu.
+
 Nach einem Neustart stellt herdr Workspaces, Tabs und Panes mit ihren
 Arbeitsverzeichnissen wieder her. Laufende Prozesse überstehen einen Neustart
 nicht; unterstützte Agents können ihre Sitzungen fortsetzen.
@@ -215,6 +222,53 @@ Projekte und persönliche Vorlieben in die Memory.
 - `SUPERVISOR_TOKEN` steht in allen Panes und Login-Shells bereit
   (`http://supervisor/core/api/...`).
 - Claude Code wird beim ersten Start installiert und aktualisiert sich selbst.
+- Dabei sind Node.js 24 (`node`, `npm`, `npx`), `uv`/`uvx` für Python, die
+  GitHub-CLI `gh`, `git`, `vim`, `nano`, `jq`, `yq` und `ripgrep`.
+- **GitHub:** Steht `GH_TOKEN` oder `GITHUB_TOKEN` in der Umgebung (am besten
+  über `ha_secrets`, z. B. `GH_TOKEN=github_token`), nutzen `gh` und `git push`
+  über HTTPS diesen Token.
+
+## Erweiterungen
+
+Weitere Werkzeuge kommen über die Konfiguration dazu. Ein Hintergrunddienst
+installiert sie nach dem Start, herdr ist währenddessen schon nutzbar.
+Fortschritt und Fehler stehen im Add-on-Log. Eine Erweiterung, die nicht
+installiert werden kann, hält das Add-on nicht an.
+
+```yaml
+apt_packages:
+  - htop
+npm_packages:
+  - ruflo                 # ohne Version: beim Start aktualisiert, wenn es eine neue gibt
+  - "@scope/tool@1.2.3"   # mit Version: bleibt fest
+uv_tools:
+  - ruff
+```
+
+| Option | Wohin | Beim Start |
+|---|---|---|
+| `apt_packages` | in den Container | jedes Mal installiert, Downloads aus dem Cache |
+| `npm_packages` | `~/.local` (Befehle in `~/.local/bin`) | nur neu geladen, wenn sich die Version ändert |
+| `uv_tools` | `~/.local/share/uv` | ohne Versionsangabe aktualisiert |
+
+Wer ein Paket aus der Liste nimmt, dem entfernt herdr es beim nächsten Start.
+Installierte Erweiterungen und Caches überstehen Neustarts, gehen aber **nicht**
+ins Backup. Nach einer Wiederherstellung installiert herdr sie neu. Von Hand
+aufrufen: `herdr-extensions`.
+
+### Eigene Startschritte
+
+Skripte unter `/addon_config/init.d/*.sh` laufen nach den Erweiterungen bei jedem
+Start, alphabetisch, im Verzeichnis `/config` und mit deinen Umgebungsvariablen.
+Gut für Konfiguration, die Erweiterungen brauchen, etwa MCP-Server für Claude Code:
+
+```sh
+# /addon_config/init.d/20-ruflo.sh
+claude mcp get ruflo >/dev/null 2>&1 || claude mcp add --scope user ruflo -- ruflo mcp start
+```
+
+ruflo schickt standardmäßig Nutzungsereignisse an seine Server („Funnel“).
+Abschalten mit `RUFLO_FUNNEL=0` in `/addon_config/env`.
 
 ## Home-Assistant-Werkzeuge
 
@@ -230,8 +284,9 @@ Projekte und persönliche Vorlieben in die Memory.
 | `esphome-mcp [--check]` | MCP-Brücke zum Device Builder (ab ESPHome 2026.10) |
 
 Die Claude-Code-Skills `home-assistant` und `esphome` beschreiben diese
-Werkzeuge. Sie werden bei jedem Start nach `~/.claude/skills` kopiert, eigene
-Änderungen an diesen beiden Skills gehen dabei verloren. Der MCP-Server `esphome`
+Werkzeuge, der Skill `herdr` (aus `herdr --skill`) die Steuerung von Panes,
+Tabs und Workspaces. Sie werden bei jedem Start nach `~/.claude/skills`
+geschrieben, eigene Änderungen an diesen drei Skills gehen dabei verloren. Der MCP-Server `esphome`
 wird beim Start für Claude Code eingetragen, sofern es noch keinen mit diesem
 Namen gibt.
 

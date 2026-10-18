@@ -3,6 +3,10 @@
 //   When the browser refuses without a click, a button asks for one.
 // - Ctrl+V and Ctrl+Shift+V paste from the browser clipboard instead of
 //   sending ^V to the terminal.
+// - Ctrl+Enter and Shift+Enter are sent as Kitty keyboard sequences
+//   (CSI 13;<mod> u). xterm.js would send ^J or a plain CR, so Claude Code
+//   could not tell them from Ctrl+J/Enter. herdr parses the sequence and
+//   re-encodes it for each pane (Kitty or modifyOtherKeys).
 (function () {
   "use strict";
 
@@ -68,10 +72,20 @@
       return true;
     });
 
-    // Let the browser handle Ctrl+V so xterm.js receives a paste event
     term.attachCustomKeyEventHandler(function (event) {
+      // Let the browser handle Ctrl+V so xterm.js receives a paste event
       if (event.type === "keydown" && event.ctrlKey && !event.altKey && !event.metaKey &&
           (event.key === "v" || event.key === "V")) {
+        return false;
+      }
+      // Modified Enter: Kitty modifier value is 1 + shift(1) + ctrl(4)
+      if (event.key === "Enter" && (event.ctrlKey || event.shiftKey) &&
+          !event.altKey && !event.metaKey) {
+        if (event.type === "keydown") {
+          var mod = 1 + (event.shiftKey ? 1 : 0) + (event.ctrlKey ? 4 : 0);
+          term.input("\x1b[13;" + mod + "u", true);
+        }
+        event.preventDefault();
         return false;
       }
       return true;

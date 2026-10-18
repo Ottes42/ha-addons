@@ -26,5 +26,19 @@ configuration:
   claude_deny:
     name: Claude Code – verbotene Regeln
     description: Berechtigungsregeln, die Claude Code nie nutzen darf, z. B. Bash(rm -rf *).
+  apt_packages:
+    name: Debian-Pakete
+    description: >-
+      Zusätzliche Pakete aus Debian, z. B. htop. Werden bei jedem Start installiert,
+      die Downloads bleiben im Cache.
+  npm_packages:
+    name: npm-Pakete
+    description: >-
+      Globale npm-Pakete in ~/.local, z. B. ruflo oder ruflo@3.56.10 (feste Version).
+      Ohne Version aktualisiert herdr sie beim Start, wenn es eine neue gibt.
+  uv_tools:
+    name: Python-Werkzeuge (uv)
+    description: >-
+      Werkzeuge für `uv tool install`, z. B. ruff. Ohne Versionsangabe beim Start aktualisiert.
 network:
   2222/tcp: SSH (für herdr --remote)

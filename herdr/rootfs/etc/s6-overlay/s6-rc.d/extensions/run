@@ -1,0 +1,8 @@
+#!/command/with-contenv bashio
+# shellcheck shell=bash
+# ==============================================================================
+# herdr add-on: installs extensions in the background (see herdr-extensions),
+# then stays idle so s6 does not run it again
+# ==============================================================================
+herdr-extensions || bashio::log.warning 'Installing extensions failed'
+exec sleep infinity

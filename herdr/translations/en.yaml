@@ -26,5 +26,18 @@ configuration:
   claude_deny:
     name: Claude Code deny rules
     description: Permission rules Claude Code must never use, e.g. Bash(rm -rf *).
+  apt_packages:
+    name: Debian packages
+    description: >-
+      Additional Debian packages, e.g. htop. Installed on every start, downloads stay cached.
+  npm_packages:
+    name: npm packages
+    description: >-
+      Global npm packages in ~/.local, e.g. ruflo or ruflo@3.56.10 (pinned).
+      Without a version herdr updates them on start when a new one exists.
+  uv_tools:
+    name: Python tools (uv)
+    description: >-
+      Tools for `uv tool install`, e.g. ruff. Upgraded on start unless a version is given.
 network:
   2222/tcp: SSH (for herdr --remote)
