@@ -23,13 +23,14 @@ map:
   - type: homeassistant_config
     read_only: false
     path: /config
-  - type: addon_config
+  - type: app_config
     read_only: false
     path: /addon_config
   - type: share
     read_only: false
-  - type: addons
+  - type: local_apps
     read_only: false
+    path: /addons
 # Installed extensions and caches survive restarts, but not into backups;
 # after a restore herdr installs them again (herdr-extensions)
 backup_exclude:
