@@ -24,6 +24,7 @@ jobs:
       url: ${{ steps.normalize.outputs.url }}
       registry_prefix: ${{ steps.normalize.outputs.registry_prefix }}
       version: ${{ steps.normalize.outputs.version }}
+      released: ${{ steps.released.outputs.released }}
     steps:
       - name: Check out the repository
         uses: actions/checkout@v7.0.1
@@ -59,6 +60,31 @@ jobs:
               echo "url=${URL}"
             fi
           } >> "$GITHUB_OUTPUT"
+
+      # Our own check instead of the builder's skip-existing: that one fails
+      # while the package does not exist on GHCR yet (first publish)
+      - name: Check whether this version is already published
+        id: released
+        env:
+          IMAGE: ${{ steps.normalize.outputs.registry_prefix }}/${{ steps.normalize.outputs.image_name }}
+          VERSION: ${{ steps.normalize.outputs.version }}
+          GH_ACTOR: ${{ github.actor }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          repo="${IMAGE#ghcr.io/}"
+          token=$(curl -fsS -u "${GH_ACTOR}:${GH_TOKEN}" \
+            "https://ghcr.io/token?scope=repository:${repo}:pull" | jq -r '.token // empty' || true)
+          status=$(curl -s -o /dev/null -w '%{http_code}' -I \
+            -H "Authorization: Bearer ${token}" \
+            -H "Accept: application/vnd.oci.image.index.v1+json, application/vnd.docker.distribution.manifest.list.v2+json, application/vnd.oci.image.manifest.v1+json" \
+            "https://ghcr.io/v2/${repo}/manifests/${VERSION}")
+          echo "Manifest ${IMAGE}:${VERSION}: HTTP ${status}"
+          if [[ "${status}" == "200" ]]; then
+            echo "::notice::${IMAGE}:${VERSION} is already published, building without pushing"
+            echo "released=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "released=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Prepare build matrix
         id: matrix
@@ -100,15 +126,14 @@ jobs:
             io.hass.name=${{ needs.prepare.outputs.name }}
             io.hass.description=${{ needs.prepare.outputs.description }}
             ${{ needs.prepare.outputs.url && format('io.hass.url={0}', needs.prepare.outputs.url) || '' }}
-          push: ${{ inputs.publish }}
+          push: ${{ inputs.publish && needs.prepare.outputs.released != 'true' }}
           # Without a version bump: build as a test, never overwrite a release
-          skip-existing: ${{ needs.prepare.outputs.version }}
           version: ${{ needs.prepare.outputs.version }}
 
   manifest:
     name: Publish multi-arch manifest
     needs: [prepare, build]
-    if: inputs.publish
+    if: inputs.publish && needs.prepare.outputs.released != 'true'
     runs-on: ubuntu-latest
     permissions:
       id-token: write
@@ -124,4 +149,3 @@ jobs:
             ${{ needs.prepare.outputs.version }}
             latest
           registry-prefix: ${{ needs.prepare.outputs.registry_prefix }}
-          skip-existing: ${{ needs.prepare.outputs.version }}
