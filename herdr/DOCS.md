@@ -309,6 +309,13 @@ vertrauenswürdigen Netzwerk.
 `esphome-mcp` braucht den MCP-Endpunkt des Device Builders (ab ESPHome 2026.10).
 Bis dahin meldet es das, und `esphome-build` übernimmt.
 
+Läuft `esphome-build` in herdr (auch aus Claude Code heraus), öffnet es unter
+dem aufrufenden Pane ein Fortschritts-Pane: Phase, Balken für Kompilieren und
+Hochladen, Laufzeit und das Ende des Logs. Der nächste Build nutzt dasselbe
+Pane wieder, schließen kannst du es jederzeit. `ESPHOME_BUILD_PANE=0` schaltet
+das ab. Das ganze Log liegt unter `/tmp/esphome-build/<gerät>.log`. Builds über
+den MCP-Server `esphome` zeigen kein Pane.
+
 ## Sicherheit
 
 Das Add-on bietet vollen Shell-Zugriff mit Schreibrechten auf deine

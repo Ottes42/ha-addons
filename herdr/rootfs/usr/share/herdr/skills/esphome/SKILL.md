@@ -20,6 +20,10 @@ esphome-build upload  esp32c3-btproxy-buro.yaml OTA    # letzten Build hochladen
 
 Die Ausgabe filtern, der Upload-Fortschrittsbalken ist lang:
 `esphome-build install x.yaml 2>&1 | grep -vE 'Uploading: \[' | tail -30`.
+In herdr zeigt `esphome-build` den Fortschritt selbst in einem Pane unter dem
+aufrufenden an (nichts weiter zu tun), das volle Log liegt in
+`/tmp/esphome-build/<gerät>.log`. Für Builds, die der Nutzer mitverfolgen soll,
+deshalb `esphome-build` statt MCP-`install` nehmen.
 Exit-Code 1 heißt Fehler, das Ende des Logs sagt warum. „No route to host“
 heißt: Gerät offline.
 

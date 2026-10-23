@@ -8,20 +8,47 @@
 Uses the builder's own toolchain and stored credentials over its WebSocket
 spawn protocol, so it also works where the MCP endpoint (esphome-mcp) is
 missing. Needs the same add-on setup as esphome-mcp. Exit code 1 on failure.
+
+Inside herdr, a pane below the calling one shows the progress (phase,
+progress bar, end of the log). ESPHOME_BUILD_PANE=0 turns that off.
 """
 import json
+import os
 import re
+import shutil
+import subprocess
 import sys
+import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "lib" / "herdr"))
 import hatools  # noqa: E402
-from websockets.sync.client import connect  # noqa: E402
 
 ANSI = re.compile(r"(?:\x1b|\\033)\[[0-9;]*m")
+LOG_DIR = Path("/tmp/esphome-build")
+# Number of compiled files per device from the last full build, for the estimate
+COUNTS = Path.home() / ".cache" / "esphome-build" / "counts.json"
+DONE = re.compile(r"^== (\w+) (\S+) (done|failed)")
+SHELLS = {"bash", "sh", "zsh", "fish", "dash"}
 
 
-def run(base, action, configuration, port):
+class Log:
+    """Writes build output to stdout and to the log the progress pane follows."""
+
+    def __init__(self, path):
+        self.file = path.open("w") if path else None
+
+    def write(self, text):
+        sys.stdout.write(text)
+        sys.stdout.flush()
+        if self.file:
+            self.file.write(text)
+            self.file.flush()
+
+
+def run(base, action, configuration, port, log):
+    from websockets.sync.client import connect
+
     message = {"type": "spawn", "configuration": configuration}
     if action == "upload":
         message["port"] = port
@@ -31,14 +58,199 @@ def run(base, action, configuration, port):
         while True:
             frame = json.loads(ws.recv(timeout=1800))
             if frame.get("event") == "line":
-                sys.stdout.write(ANSI.sub("", frame.get("data", "")))
-                sys.stdout.flush()
+                log.write(ANSI.sub("", frame.get("data", "")))
             elif frame.get("event") == "exit":
                 return frame.get("code", 1)
 
 
+# --- herdr progress pane -----------------------------------------------------
+
+def herdr(*args):
+    try:
+        out = subprocess.run(["herdr", *args], capture_output=True, text=True, timeout=15)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if out.returncode != 0:
+        return None
+    try:
+        return json.loads(out.stdout).get("result")
+    except ValueError:
+        return {}
+
+
+def pane_is_idle(pane_id):
+    """True when the pane exists and its shell waits at the prompt."""
+    info = herdr("pane", "process-info", "--pane", pane_id)
+    if not info:
+        return False
+    info = info.get("process_info", {})
+    procs = info.get("foreground_processes", [])
+    return bool(procs) and all(p.get("name") in SHELLS for p in procs)
+
+
+def open_pane(log_path, configuration):
+    """Show the progress in a herdr pane: reuse the last one if it is idle, else split."""
+    caller = os.environ.get("HERDR_PANE_ID")
+    if os.environ.get("HERDR_ENV") != "1" or not caller or os.environ.get("ESPHOME_BUILD_PANE") == "0":
+        return None
+    if not shutil.which("herdr"):
+        return None
+    state = LOG_DIR / f"pane-{caller.replace(':', '_')}"
+    pane_id = state.read_text().strip() if state.is_file() else ""
+    if not pane_id or not pane_is_idle(pane_id):
+        result = herdr("pane", "split", "--current", "--direction", "down", "--ratio", "0.7",
+                       "--cwd", str(LOG_DIR), "--no-focus")
+        pane_id = ((result or {}).get("pane") or {}).get("pane_id")
+        if not pane_id:
+            return None
+        state.write_text(pane_id)
+        # Give the new shell a moment to reach its prompt
+        for _ in range(20):
+            if pane_is_idle(pane_id):
+                break
+            time.sleep(0.2)
+    herdr("pane", "rename", pane_id, f"ESPHome {Path(configuration).stem}")
+    command = f"clear; {Path(sys.argv[0]).resolve()} --follow {log_path} {os.getpid()}"
+    herdr("pane", "run", pane_id, command)
+    return pane_id
+
+
+def load_counts():
+    try:
+        return json.loads(COUNTS.read_text())
+    except (OSError, ValueError):
+        return {}
+
+
+def save_count(configuration, compiled):
+    if compiled < 5:  # cached rebuild, says nothing about a full build
+        return
+    counts = load_counts()
+    counts[configuration] = compiled
+    COUNTS.parent.mkdir(parents=True, exist_ok=True)
+    COUNTS.write_text(json.dumps(counts))
+
+
+def bar(fraction, width):
+    width = max(width, 10)
+    filled = int(round(min(max(fraction, 0.0), 1.0) * width))
+    return "█" * filled + "░" * (width - filled)
+
+
+def alive(pid):
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        pass
+    return True
+
+
+def follow(log_path, pid):
+    """Render the log of a running build as a progress view until it ends."""
+    log_path = Path(log_path)
+    configuration = log_path.stem + ".yaml"
+    expected = load_counts().get(configuration)
+    started = time.time()
+    lines, partial = [], ""
+    step, phase, compiled, upload, result = "", "starte", 0, None, None
+    ninja = None  # (done, total) from ESP-IDF builds
+    pos, last_draw = 0, 0.0
+    while True:
+        try:
+            with log_path.open() as f:
+                f.seek(pos)
+                chunk = f.read()
+                pos = f.tell()
+        except OSError:
+            chunk = ""
+        if chunk:
+            parts = re.split(r"\r\n|\n|\r|\\033\[K|\x1b\[K", partial + chunk)
+            partial = parts.pop()
+            for line in parts:
+                m = re.search(r"Uploading: \[[^\]]*\]\s*(\d+)%", line)
+                if m:
+                    upload = int(m.group(1)) / 100
+                    phase = "lade hoch"
+                    continue
+                m = re.match(r"\[(\d+)/(\d+)\] ", line)
+                if m:
+                    ninja = (int(m.group(1)), int(m.group(2)))
+                    phase = "kompiliere"
+                    if ninja[1] > 10:
+                        continue
+                if not line.strip():
+                    continue
+                lines.append(line)
+                if line.startswith("== "):
+                    done = DONE.match(line)
+                    if done:
+                        result = done.group(3)
+                    else:
+                        step = line.split()[1]
+                        phase = "kompiliere" if step == "compile" else "lade hoch"
+                        upload = None if step == "upload" else upload
+                elif line.startswith("Compiling "):
+                    compiled += 1
+                elif "Linking" in line:
+                    phase = "linke"
+                elif "Generating C++ source" in line:
+                    phase = "erzeuge C++"
+                elif "Successfully compiled" in line:
+                    phase = "kompiliert"
+                elif "Successfully uploaded" in line:
+                    phase = "hochgeladen"
+            lines = lines[-500:]
+        if not chunk and not result and not alive(pid):
+            result = "failed"
+            phase = "abgebrochen"
+            lines.append("== abgebrochen")
+        now = time.time()
+        if chunk or now - last_draw > 1 or result:
+            draw(configuration, step, phase, compiled, expected, ninja, upload, lines,
+                 now - started, result)
+            last_draw = now
+        if result:
+            if result == "done":
+                save_count(configuration, compiled)
+            return 0 if result == "done" else 1
+        time.sleep(0.25)
+
+
+def draw(configuration, step, phase, compiled, expected, ninja, upload, lines, elapsed, result):
+    cols, rows = shutil.get_terminal_size((80, 15))
+    minutes, seconds = divmod(int(elapsed), 60)
+    if result == "done":
+        status = "\x1b[1;32m✔ fertig\x1b[0m"
+    elif result == "failed":
+        status = "\x1b[1;31m✘ fehlgeschlagen\x1b[0m"
+    else:
+        status = f"\x1b[1;33m{phase}\x1b[0m"
+    out = [f"\x1b[1mESPHome {configuration}\x1b[0m  {step}  {status}  {minutes}:{seconds:02d}"]
+    if step == "upload" and upload is not None:
+        out.append(f"{bar(upload, cols - 8)} {upload * 100:3.0f}%")
+    elif ninja and ninja[1] > 10:
+        done, total = ninja
+        out.append(f"{bar(done / total, cols - 24)} {done * 100 / total:3.0f}%  {done}/{total} Schritte")
+    elif expected and compiled:
+        fraction = min(compiled / expected, 0.99 if not result else 1.0)
+        out.append(f"{bar(fraction, cols - 22)} {fraction * 100:3.0f}%  {compiled}/{expected} Dateien")
+    elif compiled:
+        out.append(f"{compiled} Dateien kompiliert")
+    else:
+        out.append("")
+    out.append("\x1b[2m" + "─" * cols + "\x1b[0m")
+    for line in lines[-max(rows - len(out) - 1, 1):]:
+        out.append(line[:cols])
+    sys.stdout.write("\x1b[H\x1b[2J" + "\n".join(out) + "\n")
+    sys.stdout.flush()
+
+
 def main():
     args = sys.argv[1:]
+    if len(args) == 3 and args[0] == "--follow":
+        sys.exit(follow(args[1], int(args[2])))
     if len(args) < 2 or args[0] not in ("compile", "upload", "install"):
         print(__doc__.strip())
         sys.exit(0 if args and args[0] in ("-h", "--help") else 2)
@@ -48,13 +260,18 @@ def main():
         base = hatools.esphome_url()
     except RuntimeError as err:
         hatools.die(str(err))
+    LOG_DIR.mkdir(parents=True, exist_ok=True)
+    log_path = LOG_DIR / f"{Path(configuration).stem}.log"
+    log = Log(log_path)
+    open_pane(log_path, configuration)
     steps = ["compile", "upload"] if action == "install" else [action]
     for step in steps:
-        print(f"== {step} {configuration}", flush=True)
-        code = run(base, step, configuration, port)
+        log.write(f"== {step} {configuration}\n")
+        code = run(base, step, configuration, port, log)
         if code != 0:
+            log.write(f"== {action} {configuration} failed (exit {code})\n")
             hatools.die(f"{step} of {configuration} failed (exit {code})")
-    print(f"== {action} {configuration} done")
+    log.write(f"== {action} {configuration} done\n")
 
 
 if __name__ == "__main__":

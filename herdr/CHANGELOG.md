@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.4.1
+
+- `esphome-build` zeigt in herdr den Fortschritt in einem eigenen Pane unter
+  dem aufrufenden: Phase, Balken für Kompilieren (ESP-IDF-Schritte) und
+  Hochladen, Laufzeit, Ende des Logs. Wird beim nächsten Build wiederverwendet,
+  `ESPHOME_BUILD_PANE=0` schaltet es ab
+
 ## 1.4.0
 
 - **Fertiges Image** von GitHub (ghcr.io) statt Bau auf dem Home-Assistant-Rechner:
