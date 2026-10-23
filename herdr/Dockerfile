@@ -78,7 +78,11 @@ COPY rootfs /
 
 RUN chmod +x /etc/s6-overlay/s6-rc.d/*/run /usr/local/bin/herdr-env \
         /usr/local/bin/ha-* /usr/local/bin/esphome-* /usr/local/bin/herdr-agents \
-        /usr/local/bin/herdr-extensions /usr/local/lib/herdr/ttyd-index
+        /usr/local/bin/herdr-extensions /usr/local/lib/herdr/ttyd-index \
+        /usr/local/bin/osc52-copy \
+    && for name in xclip xsel wl-copy wl-paste; do \
+        ln -s osc52-copy "/usr/local/bin/$name"; \
+    done
 
 LABEL \
     org.opencontainers.image.title="Home Assistant App: herdr" \

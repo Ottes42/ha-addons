@@ -1,0 +1,46 @@
+#!/bin/bash
+# Clipboard for programs that call xclip, xsel or wl-copy (gh, Go and Node
+# tools, scripts). There is no X or Wayland display here, so copying goes out
+# as OSC 52 through herdr and ttyd into the browser clipboard. Reading the
+# clipboard is not possible that way: paste with Ctrl+V in the web terminal.
+#
+#   echo text | osc52-copy        also reachable as xclip, xsel, wl-copy, wl-paste
+
+name=$(basename "$0")
+files=()
+paste=0
+case $name in
+    wl-paste) paste=1 ;;
+    wl-copy) [ $# -gt 0 ] && [ "${1#-}" = "$1" ] && text="$*" ;;
+esac
+if [ "$name" != wl-copy ]; then
+    while [ $# -gt 0 ]; do
+        case $1 in
+            -o|-out|--output) paste=1 ;;
+            -selection|-sel|-target|-t|-display|-d|-loops|-l) shift ;;
+            -*) ;;
+            *) files+=("$1") ;;
+        esac
+        shift
+    done
+fi
+
+if [ $paste = 1 ]; then
+    echo "$name: Lesen der Zwischenablage geht im herdr-Add-on nicht, im Web-Terminal mit Strg+V einfügen" >&2
+    exit 1
+fi
+
+if [ -n "${text+x}" ]; then
+    data=$text
+elif [ ${#files[@]} -gt 0 ]; then
+    data=$(cat "${files[@]}") || exit 1
+else
+    data=$(cat)
+fi
+
+seq=$(printf '\033]52;c;%s\a' "$(printf '%s' "$data" | base64 -w0)")
+if ! { printf '%s' "$seq" > /dev/tty; } 2>/dev/null; then
+    # No controlling terminal: fall back to stderr if that is one
+    [ -t 2 ] || { echo "$name: kein Terminal für OSC 52" >&2; exit 1; }
+    printf '%s' "$seq" >&2
+fi

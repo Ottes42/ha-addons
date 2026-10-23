@@ -6,6 +6,9 @@
   dem aufrufenden: Phase, Balken für Kompilieren (ESP-IDF-Schritte) und
   Hochladen, Laufzeit, Ende des Logs. Wird beim nächsten Build wiederverwendet,
   `ESPHOME_BUILD_PANE=0` schaltet es ab
+- `xclip`, `xsel`, `wl-copy` und `wl-paste` gibt es als Ersatz, der per OSC 52
+  in die Zwischenablage des Browsers kopiert. Keine Meldung „No clipboard
+  utilities available“ mehr, z. B. bei `gh auth login`
 
 ## 1.4.0
 

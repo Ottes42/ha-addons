@@ -81,6 +81,9 @@ Für einen neuen Schlüssel `~/.ssh/id_ed25519*` löschen und das Add-on neu sta
   ohne Klick nicht zu, erscheint oben rechts ein Knopf „In die Zwischenablage
   kopieren“.
 - Text mit gedrückter `Umschalt`-Taste markieren kopiert ihn ebenfalls.
+- Programme, die `xclip`, `xsel` oder `wl-copy` aufrufen (z. B. `gh auth login`
+  für den Einmalcode), kopieren ebenfalls per OSC 52 in deine Zwischenablage.
+  Lesen der Zwischenablage (`xclip -o`, `wl-paste`) geht so nicht.
 - **Strg+Enter und Umschalt+Enter** kommen als eigene Tasten an (Kitty-Protokoll).
   In Claude Code heißt Strg+Enter „jetzt senden“, Umschalt+Enter „neue Zeile“.
   In einer normalen Shell sind beide keine Enter-Taste mehr.
