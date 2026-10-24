@@ -100,6 +100,7 @@ env_vars:
   - name: LOG_LEVEL             # nur für Werte, die nicht geheim sind
     value: debug
 agent_instructions: "Antworte auf Deutsch."
+esphome_flash: ask
 claude_allow:
   - Bash(git status)
 claude_deny:
@@ -175,6 +176,9 @@ In `~/.claude/settings.json` ergänzt das Add-on Berechtigungsregeln:
 
 - Lesende Befehle wie `ha-state`, `ha-check`, `ha addons logs` und
   `esphome-build compile` sind ohne Rückfrage erlaubt.
+- `esphome_flash: allow` erlaubt `esphome-build upload` und `install` ohne
+  Rückfrage, die Regeln für Agents sagen dann „ohne Rückfrage flashen“. Mit
+  `ask` (Standard) fragen sie vor jedem Flashen nach.
 - `claude_allow` und `claude_deny` nehmen weitere Regeln im Format von
   Claude Code auf, z. B. `Bash(git status)` oder `Edit(/config/packages/**)`.
 - Regeln, die du selbst in `settings.json` einträgst, bleiben erhalten. Regeln,

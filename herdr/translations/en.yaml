@@ -18,6 +18,11 @@ configuration:
     description: >-
       Additional instructions for Claude Code and other agents, appended to the
       managed block in ~/.claude/CLAUDE.md and ~/.codex/AGENTS.md.
+  esphome_flash:
+    name: Flash ESPHome
+    description: >-
+      ask: Claude Code asks before every flash. allow: flashes without asking
+      (esphome-build upload/install) and checks afterwards that the device is back online.
   claude_allow:
     name: Claude Code allow rules
     description: >-

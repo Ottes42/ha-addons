@@ -5,7 +5,8 @@
   block into ~/.claude/CLAUDE.md and ~/.codex/AGENTS.md. Text outside the
   block is left alone.
 - Merges default permission rules plus the options `claude_allow` and
-  `claude_deny` into ~/.claude/settings.json. Rules the add-on added earlier
+  `claude_deny` into ~/.claude/settings.json. With `esphome_flash: allow`,
+  `esphome-build upload|install` is allowed and the notes say so. Rules the add-on added earlier
   and no longer wants are removed, rules added by hand stay.
 
 HERDR_AGENTS_HOME overrides the home directory (for tests).
@@ -37,6 +38,16 @@ DEFAULT_ALLOW = [
     "Bash(esphome-mcp --check)",
     "Bash(esphome-build compile *)",
 ]
+
+FLASH_ALLOW = [
+    "Bash(esphome-build upload *)",
+    "Bash(esphome-build install *)",
+]
+FLASH_RULES = {
+    "ask": "- Vor dem Flashen eines ESPHome-Geräts nachfragen.",
+    "allow": "- ESPHome-Geräte ohne Rückfrage flashen (`esphome-build upload|install`),\n"
+             "  danach prüfen, dass sie wieder online sind, und berichten.",
+}
 
 
 def log(message):
@@ -91,14 +102,16 @@ def main():
         print(__doc__.strip())
         return
     options = json.loads(OPTIONS.read_text()) if OPTIONS.exists() else {}
-    notes = NOTES.read_text()
+    flash = "allow" if options.get("esphome_flash") == "allow" else "ask"
+    notes = NOTES.read_text().replace("@FLASH_RULE@", FLASH_RULES[flash])
     custom = (options.get("agent_instructions") or "").strip()
     if custom:
         notes += f"\n### Anweisungen aus der Add-on-Konfiguration\n\n{custom}\n"
     for path in (HOME / ".claude" / "CLAUDE.md", HOME / ".codex" / "AGENTS.md"):
         write_block(path, notes)
 
-    allow = DEFAULT_ALLOW + [r for r in options.get("claude_allow") or [] if r not in DEFAULT_ALLOW]
+    defaults = DEFAULT_ALLOW + (FLASH_ALLOW if flash == "allow" else [])
+    allow = defaults + [r for r in options.get("claude_allow") or [] if r not in defaults]
     deny = list(options.get("claude_deny") or [])
     merge_permissions(allow, deny)
     log(f"instructions written, {len(allow)} allow and {len(deny)} deny rules")

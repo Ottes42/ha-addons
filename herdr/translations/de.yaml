@@ -18,6 +18,11 @@ configuration:
     description: >-
       Eigene Anweisungen für Claude Code und andere Agents, angehängt an den
       verwalteten Block in ~/.claude/CLAUDE.md und ~/.codex/AGENTS.md.
+  esphome_flash:
+    name: ESPHome flashen
+    description: >-
+      ask: Claude Code fragt vor jedem Flashen nach. allow: flasht ohne Rückfrage
+      (esphome-build upload/install) und prüft danach, ob das Gerät wieder online ist.
   claude_allow:
     name: Claude Code – erlaubte Regeln
     description: >-

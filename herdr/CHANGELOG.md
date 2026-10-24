@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.4.2
+
+- Neue Option `esphome_flash`: Mit `allow` flasht Claude Code ESPHome-Geräte ohne
+  Rückfrage (Berechtigung für `esphome-build upload|install` plus passende Regel
+  in den Agent-Hinweisen). Standard bleibt `ask`
+
 ## 1.4.1
 
 - `esphome-build` zeigt in herdr den Fortschritt in einem eigenen Pane unter

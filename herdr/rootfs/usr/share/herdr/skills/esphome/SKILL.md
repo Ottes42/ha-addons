@@ -42,7 +42,8 @@ bis der Job fertig ist. Lange Aufgaben starten und dann abfragen.
 - Ein Flash lässt sich nicht rückgängig machen. Nie eine Konfiguration
   installieren, die `wifi:`, `api:` oder `ota:` entfernt oder das Board ändert;
   das rettet nur noch ein serielles Kabel.
-- Vor dem Flashen nachfragen. Ein Gerät installieren, prüfen, dass es in Home
+- Vor dem Flashen nachfragen, außer `~/.claude/CLAUDE.md` erlaubt es (Add-on-Option
+  `esphome_flash: allow`). Ein Gerät installieren, prüfen, dass es in Home
   Assistant wieder online ist (`ha-ws config/device_registry/list`,
   `sw_version`), dann das nächste.
 - `secrets.yaml` und Passwörter nicht ausgeben, außer auf Wunsch.

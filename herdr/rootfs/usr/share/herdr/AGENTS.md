@@ -32,8 +32,9 @@ Details stehen in den Claude-Code-Skills `home-assistant` und `esphome`.
 
 - Nach YAML-Änderungen `ha-check` ausführen, dann die betroffene Domain neu
   laden statt Home Assistant neu zu starten.
-- Vor einem Neustart von Home Assistant Core oder eines anderen Add-ons, vor
-  dem Flashen eines Geräts und vor schwer umkehrbaren Änderungen nachfragen.
+- Vor einem Neustart von Home Assistant Core oder eines anderen Add-ons und vor
+  schwer umkehrbaren Änderungen nachfragen.
+@FLASH_RULE@
 - Das herdr-Add-on selbst nie neu starten, stoppen oder umkonfigurieren: Das
   beendet alle Sitzungen, auch deine.
 - Geheimnisse (`secrets.yaml`, Tokens, Passwörter) nicht ausgeben, außer auf
