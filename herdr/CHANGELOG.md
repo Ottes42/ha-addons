@@ -1,6 +1,6 @@
 # Changelog
 
-## Unveröffentlicht
+## 1.5.0
 
 - Neue Option `permission_mode` (`read`, `build`, `admin`): Stufen, was Claude Code
   ohne Rückfrage darf, bis hin zum Neustart von Home Assistant Core und anderen

@@ -1,5 +1,5 @@
 name: herdr
-version: "1.4.3"
+version: "1.5.0"
 slug: herdr
 description: Dauerhaft laufender herdr-Server für Coding-Agents (Claude Code) mit Home-Assistant- und ESPHome-Werkzeugen
 url: https://github.com/Ottes42/ha-addons/tree/main/herdr
