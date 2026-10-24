@@ -21,6 +21,7 @@ Installation braucht.
 - Claude Code, installiert und selbst aktualisierend
 - Werkzeuge für Home Assistant: `ha-state`, `ha-api`, `ha-ws`, `ha-check`, `ha-notify`, `ha`
 - ESPHome bauen und flashen: `esphome-build`, MCP-Server `esphome-mcp`
+- ESPHome-Logs ohne Kabel und dekodierte Absturzberichte: `esphome-logs`, `esphome-crash`
 - Skills für Home Assistant, ESPHome und herdr, eigene Anweisungen und Berechtigungen
 
 **Werkzeuge und Erweiterungen**

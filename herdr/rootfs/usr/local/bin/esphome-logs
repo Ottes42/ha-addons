@@ -1,0 +1,330 @@
+#!/usr/bin/env python3
+"""Stream device logs and decode crash reports through the ESPHome Device Builder.
+
+  esphome-logs kiana-nachtuhr.yaml               logs for 60 s (over the API/OTA, no cable)
+  esphome-logs kiana-nachtuhr.yaml 0             until Ctrl-C
+  esphome-logs kiana-nachtuhr.yaml 120 --until 'Boot seems successful'
+  esphome-crash kiana-nachtuhr.yaml [SECONDS]    crash report of the previous boot, decoded
+  esphome-crash kiana-nachtuhr.yaml - < log.txt  decode a crash block from saved logs
+
+Options for esphome-logs: --until REGEX ends the stream at the first matching
+line (exit 1 if the time runs out first), --no-states hides state changes,
+--device PORT reads from another port than OTA (e.g. a serial port of the
+builder host), --raw keeps the builder's ANSI colours. `esphome-logs --crash`
+is the same as esphome-crash.
+
+Uses the builder's WebSocket API (/ws): devices/logs runs `esphome logs` in the
+builder, devices/decode_backtrace runs addr2line against the firmware.elf of the
+builder's last local build. ESPHome decodes a crash itself only when it was
+captured by the running firmware ("PC:"/"BT0:" lines, "Decoded 0x…"). A crash
+of a different build (the usual case after an OTA rollback) comes with
+lowercase "pc:"/"bt0:" labels, which nothing decodes; this tool decodes those
+against the local build and says whether that build can be the crashed one.
+Needs the same add-on setup as esphome-mcp. Exit code 1 on failure.
+"""
+import json
+import os
+import re
+import signal
+import sys
+import time
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "lib" / "herdr"))
+import hatools  # noqa: E402
+
+ANSI = re.compile(r"(?:\x1b|\\033)\[[0-9;]*m")
+TIMESTAMP = re.compile(r"^\[\d\d:\d\d:\d\d(?:\.\d+)?\]")
+# "[E][esp32.crash:436]: message" after the timestamp
+LOG_LINE = re.compile(r"^\[([A-Z])\]\[([\w.]+)(?::\d+)?\]:\s?(.*)$")
+CRASH_START = "CRASH DETECTED ON PREVIOUS BOOT"
+FOREIGN = "Captured by a different firmware build"
+# Lowercase labels of a foreign crash record, as upstream's decoders expect them
+FOREIGN_LABEL = re.compile(r"(?<![\w])(pc|bt\d+|excvaddr|mtval|mepc|ra)(\s*:)")
+ADDRESS = re.compile(r"0x([0-9a-fA-F]{8})\b")
+CONNECTED = "Successful handshake"
+# Lines worth repeating in the crash report
+NOTABLE = re.compile(
+    r"OTA rollback detected|reset before the boot was marked|SAFE MODE IS ACTIVE|Boot loop detected"
+    r"|Last reset too quick|brownout|[Rr]eset [Rr]eason|OTA updates are impossible"
+)
+
+
+class Stop(Exception):
+    pass
+
+
+def on_signal(signum, frame):
+    raise Stop()
+
+
+def connect_ws(base):
+    from websockets.sync.client import connect
+
+    ws = connect(base.replace("http", "ws", 1) + "/ws", max_size=None, open_timeout=30)
+    info = json.loads(ws.recv(timeout=30))
+    if info.get("requires_auth"):
+        ws.close()
+        hatools.die(f"the Device Builder asks for a login; {hatools.ESPHOME_SETUP_HINT}")
+    return ws
+
+
+def clean(text, raw=False):
+    return text if raw else ANSI.sub("", text)
+
+
+def parse(line):
+    """(level, tag, message) of a device log line, or None for CLI output."""
+    m = LOG_LINE.match(TIMESTAMP.sub("", line).strip())
+    return m.groups() if m else None
+
+
+class CrashBlock:
+    """Collects the lines of one "CRASH DETECTED" block from the device."""
+
+    def __init__(self):
+        self.lines, self.tag, self.done, self.reported = [], None, False, False
+
+    def feed(self, line):
+        """Take *line*; True while it belongs to the block."""
+        parsed = parse(line)
+        if self.tag is None:
+            if parsed and CRASH_START in parsed[2]:
+                self.tag = parsed[1]
+                self.lines.append(line)
+                return True
+            return False
+        if self.done:
+            return False
+        if parsed and parsed[1] == self.tag:
+            self.lines.append(line)
+            return True
+        if parsed:
+            self.done = True
+        return False
+
+    @property
+    def found(self):
+        return self.tag is not None
+
+    @property
+    def foreign(self):
+        return any(FOREIGN in line for line in self.lines)
+
+
+def decode(base, configuration, block):
+    """Ask the builder to decode *block*; (entries per line, answer) or (None, error)."""
+    lines = [TIMESTAMP.sub("", line).strip()[:500] for line in block.lines]
+    if block.foreign:
+        lines = [FOREIGN_LABEL.sub(lambda m: m.group(1).upper() + m.group(2), line) for line in lines]
+    ws = connect_ws(base)
+    try:
+        ws.send(json.dumps({"command": "devices/decode_backtrace", "message_id": "decode",
+                            "args": {"configuration": configuration, "lines": lines[:200]}}))
+        while True:
+            reply = json.loads(ws.recv(timeout=180))
+            if reply.get("message_id") == "decode":
+                break
+    finally:
+        ws.close()
+    if "error_code" in reply:
+        return None, f"{reply['error_code']}: {reply.get('details', '')}"
+    result = reply.get("result") or {}
+    per_line = {}
+    for entry in result.get("decoded", []):
+        per_line.setdefault(entry["index"], []).append(entry["text"])
+    return per_line, result
+
+
+def short(text):
+    text = re.sub(r"^Decoded 0x[0-9a-fA-F]+: ", "", text)
+    return text.replace("/IDF_BUILD/../", "").replace(" (inlined by) ", "  inlined by ")
+
+
+def report(base, configuration, block, notes, out):
+    out("")
+    out(f"== crash report {configuration}")
+    per_line, result = decode(base, configuration, block)
+    for index, line in enumerate(block.lines):
+        parsed = parse(line)
+        message = parsed[2] if parsed else line
+        if CRASH_START in message or message.strip().startswith("Use: addr2line") \
+                or message.strip().startswith("Other core: addr2line"):
+            continue
+        out("  " + message.strip())
+        for text in (per_line or {}).get(index, []):
+            out("      " + short(text).strip())
+    for note in notes:
+        out("  " + note)
+    if per_line is None:
+        out(f"== decoding failed: {result}")
+        return
+    reason = result.get("unavailable_reason")
+    local = result.get("local_config_hash") or "?"
+    if reason:
+        hints = {"no_build": "no local build; compile once with esphome-build compile",
+                 "elf_only": "only the ELF is left, the build tree is gone; compile again"}
+        out(f"== not decoded: {reason} ({hints.get(reason, 'see the ESPHome add-on log')})")
+    elif not per_line:
+        out("== nothing to decode (no code addresses in the block)")
+    elif block.foreign and result.get("stale_build"):
+        out(f"== decoded against the local build {local}. The crash came from another build than the"
+            " running firmware, and the local build differs from the running one too, so it is"
+            " likely the crashed build (typical after an OTA rollback). Only valid if nothing was"
+            " compiled since that upload; a call chain that makes sense is the best check.")
+    elif block.foreign:
+        out(f"== decoded against the local build {local}, which equals the running firmware, but the"
+            " crash came from a different build: these symbols are most likely WRONG. Without that"
+            " build's firmware.elf the addresses cannot be decoded.")
+    else:
+        stale = " (local build differs from the running firmware: symbols may be off)" \
+            if result.get("stale_build") else ""
+        out(f"== decoded against the local build {local}{stale}")
+
+
+def stream(base, configuration, seconds, port, no_states, until, raw, crash_mode, out):
+    """Stream logs; returns (exit code, CrashBlock, notes)."""
+    ws = connect_ws(base)
+    args = {"configuration": configuration, "port": port}
+    if no_states:
+        args["no_states"] = True
+    ws.send(json.dumps({"command": "devices/logs", "message_id": "logs", "args": args}))
+    block, notes = CrashBlock(), []
+    deadline = time.time() + seconds if seconds else None
+    connected_at = None
+    code = 1 if until else 0
+    try:
+        while True:
+            now = time.time()
+            if deadline and now >= deadline:
+                break
+            if crash_mode and connected_at and (block.done or (not block.found and now - connected_at > 6)):
+                break
+            try:
+                frame = json.loads(ws.recv(timeout=1))
+            except TimeoutError:
+                continue
+            if frame.get("message_id") != "logs":
+                continue
+            if "error_code" in frame:
+                hatools.die(f"logs of {configuration}: {frame['error_code']} {frame.get('details', '')}")
+            if frame.get("event") == "result" or "result" in frame:
+                data = frame.get("data") or {}
+                code = 0 if data.get("success", True) and not until else 1
+                break
+            if frame.get("event") != "output":
+                continue
+            for line in str(frame.get("data", "")).splitlines():
+                text = clean(line)
+                block.feed(text)
+                if CONNECTED in text and connected_at is None:
+                    connected_at = time.time()
+                parsed = parse(text)
+                if parsed and NOTABLE.search(parsed[2]):
+                    notes.append(parsed[2].strip())
+                if not crash_mode:
+                    out(clean(line, raw))
+                    if block.done and block.foreign and not block.reported:
+                        block.reported = True
+                        report(base, configuration, block, [], out)
+                if until and re.search(until, text):
+                    return 0, block, notes
+    finally:
+        try:
+            ws.send(json.dumps({"command": "devices/stop_stream", "message_id": "stop",
+                                "args": {"stream_id": "logs"}}))
+        except Exception:  # noqa: BLE001 — the socket may already be gone
+            pass
+        ws.close()
+    if not crash_mode and block.found and block.foreign and not block.reported:
+        report(base, configuration, block, [], out)
+    return code, block, notes
+
+
+def crash_from_file(base, configuration, source, out):
+    block, notes = CrashBlock(), []
+    for line in source:
+        text = clean(line.rstrip("\n"))
+        block.feed(text)
+        parsed = parse(text)
+        if parsed and NOTABLE.search(parsed[2]):
+            notes.append(parsed[2].strip())
+    if not block.found:
+        out("no crash block (\"CRASH DETECTED ON PREVIOUS BOOT\") in the input")
+        return
+    report(base, configuration, block, notes, out)
+
+
+def main():
+    args = sys.argv[1:]
+    crash_mode = Path(sys.argv[0]).name == "esphome-crash"
+    if args and args[0] == "--crash":
+        crash_mode, args = True, args[1:]
+    options = {"--until": None, "--device": "OTA"}
+    flags = {"--no-states": False, "--raw": False}
+    positional = []
+    while args:
+        arg = args.pop(0)
+        if arg in ("-h", "--help"):
+            print(__doc__.strip())
+            sys.exit(0)
+        if arg in options and args:
+            options[arg] = args.pop(0)
+        elif arg in flags:
+            flags[arg] = True
+        elif arg.startswith("--") and arg != "-":
+            hatools.die(f"unknown option {arg}", 2)
+        else:
+            positional.append(arg)
+    if not positional or len(positional) > 2:
+        print(__doc__.strip())
+        sys.exit(2)
+    configuration = positional[0].rsplit("/", 1)[-1]
+    if not configuration.endswith((".yaml", ".yml")):
+        configuration += ".yaml"
+    until = options["--until"]
+    if until:
+        try:
+            re.compile(until)
+        except re.error as err:
+            hatools.die(f"--until: {err}", 2)
+    from_stdin = len(positional) == 2 and positional[1] == "-"
+    try:
+        seconds = 0 if from_stdin else float(positional[1]) if len(positional) == 2 \
+            else (30 if crash_mode else 60)
+    except ValueError:
+        hatools.die(f"SECONDS must be a number, not {positional[1]}", 2)
+    try:
+        base = hatools.esphome_url()
+    except RuntimeError as err:
+        hatools.die(str(err))
+
+    def out(text):
+        sys.stdout.write(text + "\n")
+        sys.stdout.flush()
+
+    signal.signal(signal.SIGTERM, on_signal)
+    signal.signal(signal.SIGINT, on_signal)
+    try:
+        if crash_mode and from_stdin:
+            crash_from_file(base, configuration, sys.stdin, out)
+            return
+        code, block, notes = stream(base, configuration, seconds, options["--device"],
+                                    flags["--no-states"], None if crash_mode else until,
+                                    flags["--raw"], crash_mode, out)
+    except Stop:
+        sys.exit(130)
+    except OSError as err:
+        hatools.die(f"Device Builder not reachable: {err}")
+    if crash_mode:
+        if block.found:
+            report(base, configuration, block, notes, out)
+        else:
+            out(f"no crash record from {configuration}" + (": " + "; ".join(notes) if notes else ""))
+            out("(the record is kept until the next reboot after an API client fetched it;"
+                " an older crash may be gone)")
+    sys.exit(code)
+
+
+if __name__ == "__main__":
+    main()

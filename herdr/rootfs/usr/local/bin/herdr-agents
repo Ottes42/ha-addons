@@ -37,6 +37,8 @@ DEFAULT_ALLOW = [
     "Bash(ha core check)",
     "Bash(esphome-mcp --check)",
     "Bash(esphome-build compile *)",
+    "Bash(esphome-logs *)",
+    "Bash(esphome-crash *)",
 ]
 
 # permission_mode: each level adds to the one before

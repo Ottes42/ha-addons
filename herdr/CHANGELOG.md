@@ -1,5 +1,15 @@
 # Changelog
 
+## Unveröffentlicht
+
+- `esphome-logs`: Geräte-Logs über den Device Builder (API/OTA, ohne Kabel), mit
+  Zeitlimit, `--until REGEX` und `--no-states`
+- `esphome-crash`: Absturzbericht des letzten Boots holen und gegen die
+  `firmware.elf` des letzten Builds dekodieren, auch wenn der Absturz von einer
+  anderen Firmware stammt (OTA-Rollback). Beide sind ohne Rückfrage erlaubt
+- Skill `esphome`: Logs holen, Abstürze, Bootschleifen, Safe Mode und
+  OTA-Rollback erkennen und auswerten
+
 ## 1.5.0
 
 - Neue Option `permission_mode` (`read`, `build`, `admin`): Stufen, was Claude Code
