@@ -313,8 +313,8 @@ vertrauenswürdigen Netzwerk.
 Bis dahin meldet es das, und `esphome-build` übernimmt.
 
 Läuft `esphome-build` in herdr (auch aus Claude Code heraus), meldet es sich
-oben rechts mit kurzen Einblendungen: Start, „kompiliert, lade hoch“ und das
-Ergebnis mit Laufzeit. herdr zeigt sie auf allen anderen Tabs, nicht auf dem
+oben rechts mit kurzen Einblendungen: Start, Fortschritt beim Kompilieren und
+Hochladen (Balken in Schritten von 20 %) und das Ergebnis mit Laufzeit. herdr zeigt sie auf allen anderen Tabs, nicht auf dem
 Tab, aus dem der Build kommt. Schlägt der Build fehl, öffnet sich unter dem
 aufrufenden Pane ein Pane mit dem Ende des Logs; der nächste Build nutzt es
 wieder, schließen kannst du es jederzeit.

@@ -9,8 +9,8 @@ Uses the builder's own toolchain and stored credentials over its WebSocket
 spawn protocol, so it also works where the MCP endpoint (esphome-mcp) is
 missing. Needs the same add-on setup as esphome-mcp. Exit code 1 on failure.
 
-Inside herdr, toasts (top right on other tabs) report start, compile done
-and the result; on failure a pane below the calling one shows the log.
+Inside herdr, toasts (top right on other tabs) report start, progress of
+compiling and uploading in 20 % steps, and the result; on failure a pane below the calling one shows the log.
 ESPHOME_BUILD_PANE=1 shows the progress pane (phase, progress bar, end of the
 log) for every build instead, ESPHOME_BUILD_PANE=0 turns both off. Without
 herdr toasts (ui.toast.delivery = "off") the pane is used as well.
@@ -40,6 +40,7 @@ class Log:
 
     def __init__(self, path):
         self.file = path.open("w") if path else None
+        self.progress = None
 
     def write(self, text):
         sys.stdout.write(text)
@@ -47,6 +48,50 @@ class Log:
         if self.file:
             self.file.write(text)
             self.file.flush()
+        if self.progress:
+            self.progress.feed(text)
+
+
+class ToastProgress:
+    """Turns build output into progress toasts, one per 20 % step, at most every 5 s."""
+
+    STEP, MIN_GAP = 0.2, 5
+
+    def __init__(self, configuration):
+        self.name = Path(configuration).stem
+        self.expected = load_counts().get(configuration)
+        self.partial = ""
+        self.start("compile")
+
+    def start(self, step):
+        self.step, self.compiled, self.ninja = step, 0, None
+        self.shown, self.last = 0.0, time.time()
+
+    def feed(self, text):
+        parts = re.split(r"\r\n|\n|\r|\\033\[K|\x1b\[K", self.partial + text)
+        self.partial = parts.pop()
+        for line in parts:
+            fraction = self.parse(line)
+            if fraction is None or fraction < self.shown + self.STEP or fraction >= 1:
+                continue
+            if time.time() - self.last < self.MIN_GAP:
+                continue
+            self.shown, self.last = fraction, time.time()
+            verb = "kompiliere" if self.step == "compile" else "lade hoch"
+            notify(f"ESPHome · {self.name}", f"{verb} {bar(fraction, 10)} {fraction * 100:3.0f} %")
+
+    def parse(self, line):
+        """Progress of the current step from one log line, or None."""
+        m = re.search(r"Uploading: \[[^\]]*\]\s*(\d+)%", line)
+        if m:
+            return int(m.group(1)) / 100
+        m = re.match(r"\[(\d+)/(\d+)\] ", line)
+        if m and int(m.group(2)) > 10:
+            return int(m.group(1)) / int(m.group(2))
+        if line.startswith("Compiling ") and self.expected:
+            self.compiled += 1
+            return min(self.compiled / self.expected, 0.99)
+        return None
 
 
 def run(base, action, configuration, port, log):
@@ -295,8 +340,12 @@ def main():
         mode = "pane"  # toasts are off in herdr
     if mode == "pane":
         open_pane(log_path, configuration)
+    if mode == "toast":
+        log.progress = ToastProgress(configuration)
     for step in steps:
         log.write(f"== {step} {configuration}\n")
+        if log.progress:
+            log.progress.start(step)
         if mode == "toast" and step == "upload" and action == "install":
             notify(f"ESPHome · {name}", f"kompiliert in {duration(started)}, lade hoch …")
         code = run(base, step, configuration, port, log)

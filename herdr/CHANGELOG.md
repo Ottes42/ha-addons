@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.4.3
+
+- `esphome-build`: Die Einblendungen zeigen auch den Fortschritt beim Kompilieren
+  und Hochladen, mit Balken in Schritten von 20 % (höchstens alle 5 Sekunden)
+
 ## 1.4.2
 
 - `esphome-build` meldet sich in herdr mit Einblendungen oben rechts (Start,
