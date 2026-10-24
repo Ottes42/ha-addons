@@ -47,6 +47,7 @@ options:
   ha_secrets: []
   env_vars: []
   agent_instructions: ""
+  permission_mode: read
   claude_allow: []
   claude_deny: []
   apt_packages: []
@@ -61,6 +62,7 @@ schema:
     - name: match(^[A-Za-z_][A-Za-z0-9_]*$)
       value: password
   agent_instructions: str?
+  permission_mode: list(read|build|admin)
   claude_allow:
     - str
   claude_deny:

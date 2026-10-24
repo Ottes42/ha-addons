@@ -4,8 +4,9 @@
 - Writes the add-on's notes plus the option `agent_instructions` as a managed
   block into ~/.claude/CLAUDE.md and ~/.codex/AGENTS.md. Text outside the
   block is left alone.
-- Merges default permission rules plus the options `claude_allow` and
-  `claude_deny` into ~/.claude/settings.json. Rules the add-on added earlier
+- Merges the rules of the option `permission_mode` (read, build, admin) plus
+  the options `claude_allow` and `claude_deny` into ~/.claude/settings.json.
+  The notes get a matching paragraph, so "ask first" and the rules agree. Rules the add-on added earlier
   and no longer wants are removed, rules added by hand stay.
 
 HERDR_AGENTS_HOME overrides the home directory (for tests).
@@ -37,6 +38,60 @@ DEFAULT_ALLOW = [
     "Bash(esphome-mcp --check)",
     "Bash(esphome-build compile *)",
 ]
+
+# permission_mode: each level adds to the one before
+MODE_ALLOW = {
+    "read": [],
+    "build": [
+        "Bash(ha-api POST services/*/reload*)",
+        "Bash(ha-ws *)",
+        "Bash(ha-notify *)",
+        "Bash(esphome-build *)",
+    ],
+    "admin": [
+        "Bash(ha core restart)",
+        "Bash(ha core stop)",
+        "Bash(ha core start)",
+        "Bash(ha addons restart *)",
+        "Bash(ha addons start *)",
+        "Bash(ha addons stop *)",
+        "Bash(ha backups new*)",
+        "Bash(ha-api POST services/*)",
+    ],
+}
+MODES = list(MODE_ALLOW)
+
+# Never, in any mode: restarting or stopping herdr ends every session
+ALWAYS_DENY = [
+    "Bash(ha addons restart *herdr*)",
+    "Bash(ha addons stop *herdr*)",
+    "Bash(ha addons rebuild *herdr*)",
+    "Bash(ha addons update *herdr*)",
+]
+
+MODE_NOTES = {
+    "read": """\
+### Berechtigungsmodus: read
+
+Ohne Rückfrage erlaubt sind nur lesende Werkzeuge. Alles andere fragt Claude Code
+nach, die Regeln oben gelten unverändert.
+""",
+    "build": """\
+### Berechtigungsmodus: build
+
+Ohne Rückfrage erlaubt: Domains neu laden, `ha-ws`, `ha-notify` und ESPHome-Geräte
+kompilieren und flashen. Flashen musst du deshalb nicht mehr ankündigen. Vor einem
+Neustart von Core oder anderen Add-ons weiter nachfragen.
+""",
+    "admin": """\
+### Berechtigungsmodus: admin
+
+Neustarts von Home Assistant Core und anderen Add-ons, Backups und beliebige
+Dienstaufrufe sind freigegeben, ebenso alles aus `build`. Vor einem Core-Neustart
+`ha-check` ausführen, nur neu starten, wenn ein Reload nicht reicht, und danach mit
+`ha-notify` sagen, warum. Das herdr-Add-on selbst bleibt tabu.
+""",
+}
 
 
 def log(message):
@@ -92,16 +147,24 @@ def main():
         return
     options = json.loads(OPTIONS.read_text()) if OPTIONS.exists() else {}
     notes = NOTES.read_text()
+    mode = options.get("permission_mode") or "read"
+    if mode not in MODE_ALLOW:
+        log(f"unknown permission_mode {mode!r}, using read")
+        mode = "read"
+    notes += "\n" + MODE_NOTES[mode]
     custom = (options.get("agent_instructions") or "").strip()
     if custom:
         notes += f"\n### Anweisungen aus der Add-on-Konfiguration\n\n{custom}\n"
     for path in (HOME / ".claude" / "CLAUDE.md", HOME / ".codex" / "AGENTS.md"):
         write_block(path, notes)
 
-    allow = DEFAULT_ALLOW + [r for r in options.get("claude_allow") or [] if r not in DEFAULT_ALLOW]
-    deny = list(options.get("claude_deny") or [])
+    allow = list(DEFAULT_ALLOW)
+    for level in MODES[: MODES.index(mode) + 1]:
+        allow += MODE_ALLOW[level]
+    allow += [r for r in options.get("claude_allow") or [] if r not in allow]
+    deny = ALWAYS_DENY + [r for r in options.get("claude_deny") or [] if r not in ALWAYS_DENY]
     merge_permissions(allow, deny)
-    log(f"instructions written, {len(allow)} allow and {len(deny)} deny rules")
+    log(f"instructions written, mode {mode}, {len(allow)} allow and {len(deny)} deny rules")
 
 
 if __name__ == "__main__":

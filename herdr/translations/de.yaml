@@ -18,6 +18,12 @@ configuration:
     description: >-
       Eigene Anweisungen für Claude Code und andere Agents, angehängt an den
       verwalteten Block in ~/.claude/CLAUDE.md und ~/.codex/AGENTS.md.
+  permission_mode:
+    name: Claude Code – Berechtigungsmodus
+    description: >-
+      read: nur lesende Werkzeuge ohne Rückfrage. build: dazu Domains neu laden,
+      ha-ws, ha-notify, ESPHome flashen. admin: dazu Neustarts von Core und anderen
+      Add-ons, Backups, beliebige Dienstaufrufe. herdr selbst bleibt immer gesperrt.
   claude_allow:
     name: Claude Code – erlaubte Regeln
     description: >-

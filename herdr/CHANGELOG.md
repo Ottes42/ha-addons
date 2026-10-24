@@ -1,5 +1,13 @@
 # Changelog
 
+## Unveröffentlicht
+
+- Neue Option `permission_mode` (`read`, `build`, `admin`): Stufen, was Claude Code
+  ohne Rückfrage darf, bis hin zum Neustart von Home Assistant Core und anderen
+  Add-ons (`admin`). Die Agent-Hinweise bekommen einen passenden Abschnitt.
+  Das herdr-Add-on selbst neu zu starten, zu stoppen oder zu aktualisieren ist
+  jetzt immer per Regel verboten
+
 ## 1.4.3
 
 - `esphome-build`: Die Einblendungen zeigen auch den Fortschritt beim Kompilieren

@@ -100,6 +100,7 @@ env_vars:
   - name: LOG_LEVEL             # nur für Werte, die nicht geheim sind
     value: debug
 agent_instructions: "Antworte auf Deutsch."
+permission_mode: read
 claude_allow:
   - Bash(git status)
 claude_deny:
@@ -175,6 +176,19 @@ In `~/.claude/settings.json` ergänzt das Add-on Berechtigungsregeln:
 
 - Lesende Befehle wie `ha-state`, `ha-check`, `ha addons logs` und
   `esphome-build compile` sind ohne Rückfrage erlaubt.
+- `permission_mode` legt fest, was Claude Code ohne Rückfrage darf. Jede Stufe
+  enthält die vorige:
+  - `read` (Standard): nur lesende Werkzeuge.
+  - `build`: Domains neu laden (`ha-api POST services/<domain>/reload`), `ha-ws`,
+    `ha-notify`, `esphome-build` einschließlich Flashen.
+  - `admin`: Neustart, Start und Stopp von Home Assistant Core und anderen Add-ons,
+    `ha backups new` und beliebige Dienstaufrufe per `ha-api`.
+
+  Neustarten, Stoppen oder Aktualisieren des herdr-Add-ons selbst ist in jedem Modus
+  verboten, weil es alle Sitzungen beendet. Die Hinweise für die Agents bekommen
+  einen passenden Abschnitt, damit „vorher nachfragen“ und die Regeln
+  zusammenpassen. Im Auto-Modus von Claude Code gelten diese Regeln vor der
+  automatischen Prüfung, ein Core-Neustart wird dort also erst mit `admin` möglich.
 - `claude_allow` und `claude_deny` nehmen weitere Regeln im Format von
   Claude Code auf, z. B. `Bash(git status)` oder `Edit(/config/packages/**)`.
 - Regeln, die du selbst in `settings.json` einträgst, bleiben erhalten. Regeln,
