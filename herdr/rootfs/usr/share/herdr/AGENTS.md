@@ -24,6 +24,8 @@ Debian-Container. Neue Panes starten in `/config`, der Home-Assistant-Konfigurat
 | `ha` | Supervisor-CLI (`ha addons logs <slug>`, `ha backups new`) |
 | `yq` | YAML bearbeiten |
 | `esphome-build compile\|upload\|install DATEI` | ESPHome-Firmware bauen und flashen |
+| `esphome-logs DATEI [SEKUNDEN]` | Geräte-Logs per API (ohne Kabel), `--until REGEX` |
+| `esphome-crash DATEI` | Absturz des letzten Boots holen und dekodieren |
 | `esphome-mcp` | MCP-Server `esphome` für den ESPHome Device Builder (ab 2026.10) |
 
 Details stehen in den Claude-Code-Skills `home-assistant` und `esphome`.

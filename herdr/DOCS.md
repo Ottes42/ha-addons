@@ -298,6 +298,8 @@ Abschalten mit `RUFLO_FUNNEL=0` in `/addon_config/env`.
 | `ha-notify "Text" ["Titel"]` | Benachrichtigung in Home Assistant oder über `HA_NOTIFY_SERVICE` |
 | `ha`, `yq` | Supervisor-CLI und YAML-Editor |
 | `esphome-build compile\|upload\|install DATEI` | ESPHome-Firmware über den Device Builder bauen und flashen |
+| `esphome-logs DATEI [SEKUNDEN] [--until REGEX]` | Geräte-Logs über den Device Builder, ohne Kabel |
+| `esphome-crash DATEI` | Absturzbericht des letzten Boots, dekodiert gegen den letzten Build |
 | `esphome-mcp [--check]` | MCP-Brücke zum Device Builder (ab ESPHome 2026.10) |
 
 Die Claude-Code-Skills `home-assistant` und `esphome` beschreiben diese
@@ -309,7 +311,8 @@ Namen gibt.
 
 ### ESPHome
 
-`esphome-build` und `esphome-mcp` steuern das Add-on ESPHome Device Builder.
+`esphome-build`, `esphome-logs`, `esphome-crash` und `esphome-mcp` steuern das
+Add-on ESPHome Device Builder.
 Builds und Installationen nutzen also dessen Toolchain und gespeicherte
 Zugangsdaten. Add-ons können keine Ingress-Sitzungen öffnen, deshalb verwenden
 beide den eigenen Port des Device Builders:
@@ -339,6 +342,18 @@ wieder, schließen kannst du es jederzeit.
 Einblendungen in herdr aus, nimmt `esphome-build` das Pane. Das ganze Log liegt
 unter `/tmp/esphome-build/<gerät>.log`. Builds über den MCP-Server `esphome`
 melden sich nicht.
+
+`esphome-logs gerät.yaml [SEKUNDEN]` zeigt die Logs eines Geräts wie „Logs“ im
+Dashboard, über die API und ohne Kabel (Standard 60 Sekunden, `0` bis Strg+C).
+`--until REGEX` hört bei der ersten passenden Zeile auf, `--no-states` blendet
+Zustandsänderungen aus. `esphome-crash gerät.yaml` holt den Absturzbericht, den
+ESPHome nach einem Absturz beim nächsten Boot meldet („CRASH DETECTED ON
+PREVIOUS BOOT“), und dekodiert die Adressen mit `addr2line` gegen die
+`firmware.elf` des letzten Builds im Device Builder. Stammt der Absturz von
+einer anderen Firmware als der laufenden (typisch nach einem OTA-Rollback),
+dekodiert ESPHome selbst nichts; `esphome-crash` tut es trotzdem und sagt dazu,
+ob der lokale Build der abgestürzte sein kann. `esphome-crash gerät.yaml - < log.txt`
+dekodiert einen gespeicherten Log-Auszug.
 
 Einblendungen sind in herdr ab Werk aus. Das Add-on schaltet sie beim Start ein
 (oben rechts), solange `~/.config/herdr/config.toml` keinen Abschnitt
