@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.4.2
+
+- `esphome-build` meldet sich in herdr mit Einblendungen oben rechts (Start,
+  kompiliert, Ergebnis mit Laufzeit) statt mit einem Pane. Das Pane mit dem Log
+  öffnet sich nur noch, wenn der Build fehlschlägt. `ESPHOME_BUILD_PANE=1`
+  bringt das Fortschritts-Pane für jeden Build zurück
+- herdr-Einblendungen sind ab Werk an (oben rechts), solange die herdr-Konfiguration
+  keinen eigenen Abschnitt `[ui.toast]` hat
+
 ## 1.4.1
 
 - `esphome-build` zeigt in herdr den Fortschritt in einem eigenen Pane unter

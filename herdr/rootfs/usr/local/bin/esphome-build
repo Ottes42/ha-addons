@@ -9,8 +9,11 @@ Uses the builder's own toolchain and stored credentials over its WebSocket
 spawn protocol, so it also works where the MCP endpoint (esphome-mcp) is
 missing. Needs the same add-on setup as esphome-mcp. Exit code 1 on failure.
 
-Inside herdr, a pane below the calling one shows the progress (phase,
-progress bar, end of the log). ESPHOME_BUILD_PANE=0 turns that off.
+Inside herdr, toasts (top right on other tabs) report start, compile done
+and the result; on failure a pane below the calling one shows the log.
+ESPHOME_BUILD_PANE=1 shows the progress pane (phase, progress bar, end of the
+log) for every build instead, ESPHOME_BUILD_PANE=0 turns both off. Without
+herdr toasts (ui.toast.delivery = "off") the pane is used as well.
 """
 import json
 import os
@@ -88,13 +91,33 @@ def pane_is_idle(pane_id):
     return bool(procs) and all(p.get("name") in SHELLS for p in procs)
 
 
-def open_pane(log_path, configuration):
-    """Show the progress in a herdr pane: reuse the last one if it is idle, else split."""
-    caller = os.environ.get("HERDR_PANE_ID")
-    if os.environ.get("HERDR_ENV") != "1" or not caller or os.environ.get("ESPHOME_BUILD_PANE") == "0":
+def herdr_mode():
+    """'toast', 'pane' or None, from ESPHOME_BUILD_PANE and the herdr environment."""
+    if os.environ.get("HERDR_ENV") != "1" or not os.environ.get("HERDR_PANE_ID"):
         return None
     if not shutil.which("herdr"):
         return None
+    setting = os.environ.get("ESPHOME_BUILD_PANE", "")
+    if setting == "0":
+        return None
+    return "pane" if setting == "1" else "toast"
+
+
+def notify(title, body, sound="none"):
+    """herdr toast in the top right; False when herdr does not show it (toasts off)."""
+    result = herdr("notification", "show", title, "--body", body,
+                   "--position", "top-right", "--sound", sound)
+    return bool(result and result.get("shown"))
+
+
+def duration(started):
+    minutes, seconds = divmod(int(time.time() - started), 60)
+    return f"{minutes}:{seconds:02d}"
+
+
+def open_pane(log_path, configuration):
+    """Show the progress in a herdr pane: reuse the last one if it is idle, else split."""
+    caller = os.environ.get("HERDR_PANE_ID")
     state = LOG_DIR / f"pane-{caller.replace(':', '_')}"
     pane_id = state.read_text().strip() if state.is_file() else ""
     if not pane_id or not pane_is_idle(pane_id):
@@ -263,15 +286,31 @@ def main():
     LOG_DIR.mkdir(parents=True, exist_ok=True)
     log_path = LOG_DIR / f"{Path(configuration).stem}.log"
     log = Log(log_path)
-    open_pane(log_path, configuration)
+    name = Path(configuration).stem
+    started = time.time()
+    mode = herdr_mode()
+    verbs = {"compile": "kompiliere", "upload": "lade hoch"}
     steps = ["compile", "upload"] if action == "install" else [action]
+    if mode == "toast" and not notify(f"ESPHome · {name}", f"{verbs[steps[0]]} …"):
+        mode = "pane"  # toasts are off in herdr
+    if mode == "pane":
+        open_pane(log_path, configuration)
     for step in steps:
         log.write(f"== {step} {configuration}\n")
+        if mode == "toast" and step == "upload" and action == "install":
+            notify(f"ESPHome · {name}", f"kompiliert in {duration(started)}, lade hoch …")
         code = run(base, step, configuration, port, log)
         if code != 0:
             log.write(f"== {action} {configuration} failed (exit {code})\n")
+            if mode == "toast":
+                notify(f"✘ ESPHome · {name}", f"{verbs[step]} fehlgeschlagen nach {duration(started)}",
+                       "request")
+                open_pane(log_path, configuration)
             hatools.die(f"{step} of {configuration} failed (exit {code})")
     log.write(f"== {action} {configuration} done\n")
+    if mode == "toast":
+        done = {"compile": "kompiliert", "upload": "hochgeladen", "install": "geflasht"}[action]
+        notify(f"✔ ESPHome · {name}", f"{done} in {duration(started)}", "done")
 
 
 if __name__ == "__main__":

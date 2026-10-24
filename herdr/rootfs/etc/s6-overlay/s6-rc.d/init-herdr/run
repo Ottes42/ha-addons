@@ -52,6 +52,15 @@ git config --global --replace-all credential.https://github.com.helper \
 herdr-env /run/herdr/env.sh \
     || bashio::log.warning 'Failed loading custom environment variables'
 
+# herdr toasts default to off; show them top right (esphome-build, finished agents)
+# unless the user configured [ui.toast] already
+readonly HERDR_CONFIG="${HOME}/.config/herdr/config.toml"
+mkdir -p "$(dirname "${HERDR_CONFIG}")"
+if ! grep -qs '^\[ui\.toast' "${HERDR_CONFIG}"; then
+    printf '\n[ui.toast]\ndelivery = "herdr"\n\n[ui.toast.herdr]\nposition = "top-right"\n' \
+        >> "${HERDR_CONFIG}"
+fi
+
 # Claude Code installs into the persistent home and updates itself there
 if [[ ! -x "${HOME}/.local/bin/claude" ]]; then
     bashio::log.info 'Installing Claude Code...'
