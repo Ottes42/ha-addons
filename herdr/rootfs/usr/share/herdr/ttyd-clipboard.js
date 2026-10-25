@@ -7,6 +7,8 @@
 //   (CSI 13;<mod> u). xterm.js would send ^J or a plain CR, so Claude Code
 //   could not tell them from Ctrl+J/Enter. herdr parses the sequence and
 //   re-encodes it for each pane (Kitty or modifyOtherKeys).
+// - Right click opens only herdr's context menu, not the browser's on top.
+//   Shift+right click still opens the browser menu.
 (function () {
   "use strict";
 
@@ -91,6 +93,10 @@
       return true;
     });
   }
+
+  document.addEventListener("contextmenu", function (event) {
+    if (!event.shiftKey) event.preventDefault();
+  }, true);
 
   var tries = 0;
   (function waitForTerminal() {

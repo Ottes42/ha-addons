@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.6.1
+
+- Weboberfläche: Rechtsklick öffnet nur noch das Kontextmenü von herdr, nicht
+  zusätzlich das des Browsers. Shift+Rechtsklick zeigt weiterhin das Browsermenü
+
 ## 1.6.0
 
 - `esphome-logs`: Geräte-Logs über den Device Builder (API/OTA, ohne Kabel), mit
