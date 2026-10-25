@@ -1,6 +1,6 @@
 # Changelog
 
-## Unveröffentlicht
+## 1.6.0
 
 - `esphome-logs`: Geräte-Logs über den Device Builder (API/OTA, ohne Kabel), mit
   Zeitlimit, `--until REGEX` und `--no-states`
