@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.7.0
+
+- Neue Option `esphome_mcp` (Standard an): trägt den MCP-Server `esphome` für
+  Claude Code ein, aus entfernt ihn wieder
+- Berechtigungsregeln für die ESPHome-MCP-Tools: lesende immer ohne Rückfrage,
+  ändernde (Konfiguration, Kompilieren, Flashen) ab `build`, `set_secret` fragt
+  immer nach
+
 ## 1.6.1
 
 - Weboberfläche: Rechtsklick öffnet nur noch das Kontextmenü von herdr, nicht

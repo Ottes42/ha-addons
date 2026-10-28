@@ -32,6 +32,11 @@ configuration:
   claude_deny:
     name: Claude Code – verbotene Regeln
     description: Berechtigungsregeln, die Claude Code nie nutzen darf, z. B. Bash(rm -rf *).
+  esphome_mcp:
+    name: ESPHome-MCP-Server
+    description: >-
+      Trägt den MCP-Server esphome (Device Builder ab ESPHome 2026.10) für Claude
+      Code ein und erlaubt seine Tools wie esphome-build. Aus entfernt ihn wieder.
   apt_packages:
     name: Debian-Pakete
     description: >-

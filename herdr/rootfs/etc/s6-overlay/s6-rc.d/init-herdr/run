@@ -84,9 +84,15 @@ herdr --skill > "${HOME}/.claude/skills/herdr/SKILL.md" \
 # Instructions and permissions for coding agents (managed block / rules only)
 herdr-agents || bashio::log.warning 'Failed setting up agent instructions and permissions'
 
-# MCP bridge to the ESPHome Device Builder, registered once for Claude Code
-if [[ -x "${HOME}/.local/bin/claude" ]] \
-    && ! "${HOME}/.local/bin/claude" mcp get esphome >/dev/null 2>&1; then
-    "${HOME}/.local/bin/claude" mcp add --scope user esphome -- /usr/local/bin/esphome-mcp >/dev/null \
-        || bashio::log.warning 'Failed registering the esphome MCP server'
+# MCP bridge to the ESPHome Device Builder (option esphome_mcp): registered once, removed when off
+if [[ -x "${HOME}/.local/bin/claude" ]]; then
+    if bashio::config.false 'esphome_mcp'; then
+        if "${HOME}/.local/bin/claude" mcp get esphome >/dev/null 2>&1; then
+            "${HOME}/.local/bin/claude" mcp remove --scope user esphome >/dev/null \
+                || bashio::log.warning 'Failed removing the esphome MCP server'
+        fi
+    elif ! "${HOME}/.local/bin/claude" mcp get esphome >/dev/null 2>&1; then
+        "${HOME}/.local/bin/claude" mcp add --scope user esphome -- /usr/local/bin/esphome-mcp >/dev/null \
+            || bashio::log.warning 'Failed registering the esphome MCP server'
+    fi
 fi

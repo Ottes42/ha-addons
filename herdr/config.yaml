@@ -1,5 +1,5 @@
 name: herdr
-version: "1.6.1"
+version: "1.7.0"
 slug: herdr
 description: Dauerhaft laufender herdr-Server für Coding-Agents (Claude Code) mit Home-Assistant- und ESPHome-Werkzeugen
 url: https://github.com/Ottes42/ha-addons/tree/main/herdr
@@ -50,6 +50,7 @@ options:
   permission_mode: read
   claude_allow: []
   claude_deny: []
+  esphome_mcp: true
   apt_packages: []
   npm_packages: []
   uv_tools: []
@@ -67,6 +68,7 @@ schema:
     - str
   claude_deny:
     - str
+  esphome_mcp: bool
   apt_packages:
     - match(^[a-z0-9][a-z0-9+.:=~-]*$)
   npm_packages:

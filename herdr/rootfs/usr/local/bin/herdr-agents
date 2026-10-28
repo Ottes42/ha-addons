@@ -8,6 +8,8 @@
   the options `claude_allow` and `claude_deny` into ~/.claude/settings.json.
   The notes get a matching paragraph, so "ask first" and the rules agree. Rules the add-on added earlier
   and no longer wants are removed, rules added by hand stay.
+- The option `esphome_mcp` (default on) adds rules for the tools of the MCP
+  server `esphome`; off, they and the tool's line in the notes go away.
 
 HERDR_AGENTS_HOME overrides the home directory (for tests).
 """
@@ -62,6 +64,20 @@ MODE_ALLOW = {
     ],
 }
 MODES = list(MODE_ALLOW)
+
+# MCP server esphome (option esphome_mcp), same levels as esphome-build; set_secret always asks
+MCP_ALLOW = {
+    "read": [f"mcp__esphome__{t}" for t in (
+        "list_devices", "get_config", "get_config_components", "validate_config",
+        "search_components", "get_component", "search_boards", "list_automations",
+        "get_available_automations", "get_automation_docs", "get_job", "list_secret_names",
+    )],
+    "build": [f"mcp__esphome__{t}" for t in (
+        "update_config", "add_component", "create_device", "upsert_automation",
+        "delete_automation", "compile", "install", "cancel_job",
+    )],
+    "admin": [],
+}
 
 # Never, in any mode: restarting or stopping herdr ends every session
 ALWAYS_DENY = [
@@ -149,6 +165,9 @@ def main():
         return
     options = json.loads(OPTIONS.read_text()) if OPTIONS.exists() else {}
     notes = NOTES.read_text()
+    mcp = options.get("esphome_mcp", True)
+    if not mcp:
+        notes = "".join(l for l in notes.splitlines(keepends=True) if not l.startswith("| `esphome-mcp`"))
     mode = options.get("permission_mode") or "read"
     if mode not in MODE_ALLOW:
         log(f"unknown permission_mode {mode!r}, using read")
@@ -162,7 +181,7 @@ def main():
 
     allow = list(DEFAULT_ALLOW)
     for level in MODES[: MODES.index(mode) + 1]:
-        allow += MODE_ALLOW[level]
+        allow += MODE_ALLOW[level] + (MCP_ALLOW[level] if mcp else [])
     allow += [r for r in options.get("claude_allow") or [] if r not in allow]
     deny = ALWAYS_DENY + [r for r in options.get("claude_deny") or [] if r not in ALWAYS_DENY]
     merge_permissions(allow, deny)

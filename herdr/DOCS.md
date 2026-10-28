@@ -105,6 +105,7 @@ claude_allow:
   - Bash(git status)
 claude_deny:
   - Bash(rm -rf *)
+esphome_mcp: true
 ```
 
 ### `authorized_keys`
@@ -189,6 +190,11 @@ In `~/.claude/settings.json` ergänzt das Add-on Berechtigungsregeln:
   einen passenden Abschnitt, damit „vorher nachfragen“ und die Regeln
   zusammenpassen. Im Auto-Modus von Claude Code gelten diese Regeln vor der
   automatischen Prüfung, ein Core-Neustart wird dort also erst mit `admin` möglich.
+- `esphome_mcp` (Standard an) trägt den MCP-Server `esphome` für Claude Code ein
+  und erlaubt seine Tools nach denselben Stufen wie `esphome-build`: lesende
+  (`list_devices`, `get_config`, `validate_config`, `get_job` …) immer, ändernde
+  (`update_config`, `create_device`, `compile`, `install` …) ab `build`.
+  `set_secret` fragt immer nach. Aus entfernt das Add-on den Server und die Regeln.
 - `claude_allow` und `claude_deny` nehmen weitere Regeln im Format von
   Claude Code auf, z. B. `Bash(git status)` oder `Edit(/config/packages/**)`.
 - Regeln, die du selbst in `settings.json` einträgst, bleiben erhalten. Regeln,
@@ -307,7 +313,7 @@ Werkzeuge, der Skill `herdr` (aus `herdr --skill`) die Steuerung von Panes,
 Tabs und Workspaces. Sie werden bei jedem Start nach `~/.claude/skills`
 geschrieben, eigene Änderungen an diesen drei Skills gehen dabei verloren. Der MCP-Server `esphome`
 wird beim Start für Claude Code eingetragen, sofern es noch keinen mit diesem
-Namen gibt.
+Namen gibt und `esphome_mcp` an ist.
 
 ### ESPHome
 

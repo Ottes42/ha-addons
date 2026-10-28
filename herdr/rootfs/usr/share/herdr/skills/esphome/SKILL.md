@@ -29,7 +29,8 @@ heißt: Gerät offline.
 
 ## MCP-Server `esphome` (ab ESPHome 2026.10)
 
-`esphome-mcp` verbindet Claude Code mit dem MCP-Endpunkt des Device Builders.
+`esphome-mcp` verbindet Claude Code mit dem MCP-Endpunkt des Device Builders,
+eingetragen, solange die Add-on-Option `esphome_mcp` an ist.
 Prüfen mit `esphome-mcp --check`; bei älteren Versionen meldet es, dass der
 Endpunkt fehlt, dann `esphome-build` nehmen.
 
