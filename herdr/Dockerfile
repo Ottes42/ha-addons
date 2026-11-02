@@ -17,7 +17,7 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 ARG BUILD_ARCH=amd64
 # renovate: datasource=github-releases depName=herdrdev/herdr extractVersion=^v(?<version>.+)$
-ARG HERDR_VERSION="0.9.3"
+ARG HERDR_VERSION="0.9.5"
 # renovate: datasource=github-releases depName=tsl0922/ttyd
 ARG TTYD_VERSION="1.7.7"
 # renovate: datasource=github-releases depName=home-assistant/cli
