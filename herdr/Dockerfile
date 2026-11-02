@@ -16,12 +16,19 @@ ENV \
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 ARG BUILD_ARCH=amd64
+# renovate: datasource=github-releases depName=herdrdev/herdr extractVersion=^v(?<version>.+)$
 ARG HERDR_VERSION="0.9.3"
+# renovate: datasource=github-releases depName=tsl0922/ttyd
 ARG TTYD_VERSION="1.7.7"
+# renovate: datasource=github-releases depName=home-assistant/cli
 ARG HA_CLI_VERSION="5.5.0"
+# renovate: datasource=github-releases depName=mikefarah/yq extractVersion=^v(?<version>.+)$
 ARG YQ_VERSION="4.54.1"
+# renovate: datasource=node-version depName=node
 ARG NODE_VERSION="24.22.0"
+# renovate: datasource=github-releases depName=cli/cli extractVersion=^v(?<version>.+)$
 ARG GH_VERSION="2.102.0"
+# renovate: datasource=github-releases depName=astral-sh/uv
 ARG UV_VERSION="0.13.1"
 # hadolint ignore=DL3008
 RUN \
