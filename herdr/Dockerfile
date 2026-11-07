@@ -29,7 +29,7 @@ ARG NODE_VERSION="24.22.0"
 # renovate: datasource=github-releases depName=cli/cli extractVersion=^v(?<version>.+)$
 ARG GH_VERSION="2.102.0"
 # renovate: datasource=github-releases depName=astral-sh/uv
-ARG UV_VERSION="0.13.1"
+ARG UV_VERSION="0.13.7"
 # hadolint ignore=DL3008
 RUN \
     apt-get update \
