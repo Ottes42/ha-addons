@@ -23,7 +23,7 @@ ARG TTYD_VERSION="1.7.7"
 # renovate: datasource=github-releases depName=home-assistant/cli
 ARG HA_CLI_VERSION="5.5.0"
 # renovate: datasource=github-releases depName=mikefarah/yq extractVersion=^v(?<version>.+)$
-ARG YQ_VERSION="4.54.1"
+ARG YQ_VERSION="4.54.2"
 # renovate: datasource=node-version depName=node
 ARG NODE_VERSION="24.22.0"
 # renovate: datasource=github-releases depName=cli/cli extractVersion=^v(?<version>.+)$
