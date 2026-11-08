@@ -25,7 +25,7 @@ ARG HA_CLI_VERSION="5.5.0"
 # renovate: datasource=github-releases depName=mikefarah/yq extractVersion=^v(?<version>.+)$
 ARG YQ_VERSION="4.54.1"
 # renovate: datasource=node-version depName=node
-ARG NODE_VERSION="24.22.0"
+ARG NODE_VERSION="24.22.2"
 # renovate: datasource=github-releases depName=cli/cli extractVersion=^v(?<version>.+)$
 ARG GH_VERSION="2.102.0"
 # renovate: datasource=github-releases depName=astral-sh/uv
