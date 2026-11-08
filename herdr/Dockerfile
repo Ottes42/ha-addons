@@ -27,7 +27,7 @@ ARG YQ_VERSION="4.54.1"
 # renovate: datasource=node-version depName=node
 ARG NODE_VERSION="24.22.0"
 # renovate: datasource=github-releases depName=cli/cli extractVersion=^v(?<version>.+)$
-ARG GH_VERSION="2.102.0"
+ARG GH_VERSION="2.103.3"
 # renovate: datasource=github-releases depName=astral-sh/uv
 ARG UV_VERSION="0.13.1"
 # hadolint ignore=DL3008
